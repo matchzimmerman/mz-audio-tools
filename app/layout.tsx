@@ -1,25 +1,36 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import "./globals.css";
 
-export const metadata: Metadata = {
-  title: "Magpie — Avian Signal Synthesizer",
-  description: "A playable generative browser synthesizer for metallic calls, fluttering phrases, and strange field recordings.",
-  openGraph: {
-    title: "Magpie — Avian Signal Synthesizer",
-    description: "Shape metallic calls, fluttering phrases, and strange synthetic field recordings.",
-    images: [{ url: "/og.png", width: 1200, height: 630, alt: "Magpie avian signal synthesizer" }],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Magpie — Avian Signal Synthesizer",
-    description: "A playable generative browser instrument.",
-    images: ["/og.png"],
-  },
-  icons: {
-    icon: "/favicon.svg",
-    shortcut: "/favicon.svg",
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const requestHeaders = await headers();
+  const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host") ?? "localhost";
+  const protocol = requestHeaders.get("x-forwarded-proto") ?? (host.includes("localhost") ? "http" : "https");
+  const previewImage = `${protocol}://${host}/serial-og.png`;
+  const title = "Serial — Sequential Effects Lab";
+  const description = "A playable introduction to audio effect chains. Drag, snap, listen, and reorder real effects in the browser.";
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      type: "website",
+      images: [{ url: previewImage, width: 1200, height: 630, alt: "Serial sequential effects lab signal chain" }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [previewImage],
+    },
+    icons: {
+      icon: "/favicon.svg",
+      shortcut: "/favicon.svg",
+    },
+  };
+}
 
 export default function RootLayout({
   children,
