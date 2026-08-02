@@ -1,0 +1,45 @@
+name: Build COASTS Native
+
+on:
+  pull_request:
+    paths:
+      - "native/coasts/**"
+      - ".github/workflows/coasts-native.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  macos-universal:
+    runs-on: macos-15
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Configure universal macOS build
+        run: >-
+          cmake -S native/coasts -B native/coasts/build -G Xcode
+          -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"
+          -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0
+
+      - name: Build VST3 AU and standalone
+        run: cmake --build native/coasts/build --config Release --target Coasts_All --parallel 3
+
+      - name: Collect plug-in bundles
+        run: |
+          mkdir -p native/coasts/dist
+          cp -R native/coasts/build/Coasts_artefacts/Release/VST3/*.vst3 native/coasts/dist/
+          cp -R native/coasts/build/Coasts_artefacts/Release/AU/*.component native/coasts/dist/
+          cp -R native/coasts/build/Coasts_artefacts/Release/Standalone/*.app native/coasts/dist/
+          ditto -c -k --sequesterRsrc --keepParent native/coasts/dist native/coasts/MZ-04-COASTS-macOS.zip
+
+      - name: Upload unsigned development build
+        uses: actions/upload-artifact@v7
+        with:
+          name: MZ-04-COASTS-macOS-unsigned
+          path: native/coasts/MZ-04-COASTS-macOS.zip
+          if-no-files-found: error
+          retention-days: 14
