@@ -8,7 +8,7 @@ This directory ports the browser instrument at `/coasts/` into a native JUCE aud
 - Audio Unit — macOS
 - Standalone application — macOS and Windows-capable project target
 
-The included GitHub Actions workflow currently produces an **unsigned universal macOS development build** containing VST3, AU, and standalone bundles.
+The included GitHub Actions workflow produces an **unsigned universal macOS development build** containing VST3, AU, and standalone bundles. The generated binaries have been verified to contain both `arm64` and `x86_64` architectures.
 
 ## Signal paths
 
@@ -92,5 +92,5 @@ Field Specimen: Level 3
 Reused: bone paper, near-black ink, acid-yellow live state, ruled modules, numbered subsystem headers, real output trace
 Added: native rotary control and DAW parameter attachments
 Deviations: none
-Validated: macOS CI build pending
+Validated: universal macOS VST3, AU, and standalone bundles compiled and inspected (arm64 + x86_64)
 ```
