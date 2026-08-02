@@ -30,16 +30,11 @@ jobs:
             2>&1 | tee native/coasts/ci-logs/configure.log
 
       - name: Build VST3 AU and standalone
-        id: native-build
         shell: bash
         run: |
-          set +e
           set -o pipefail
           cmake --build native/coasts/build --config Release --target Coasts_All --parallel 3 \
             2>&1 | tee native/coasts/ci-logs/build.log
-          status=${PIPESTATUS[0]}
-          echo "status=${status}" >> "$GITHUB_OUTPUT"
-          exit 0
 
       - name: Inventory build output
         if: always()
@@ -50,7 +45,6 @@ jobs:
             | tee native/coasts/ci-logs/build-tree.txt
 
       - name: Collect plug-in bundles
-        if: steps.native-build.outputs.status == '0'
         shell: bash
         run: |
           set -euo pipefail
@@ -83,17 +77,9 @@ jobs:
           retention-days: 14
 
       - name: Upload unsigned development build
-        if: steps.native-build.outputs.status == '0'
         uses: actions/upload-artifact@v4
         with:
           name: MZ-04-COASTS-macOS-unsigned
           path: native/coasts/MZ-04-COASTS-macOS.zip
           if-no-files-found: error
           retention-days: 14
-
-      - name: Fail if native compilation failed
-        if: steps.native-build.outputs.status != '0'
-        shell: bash
-        run: |
-          echo "Native compilation failed; see MZ-04-COASTS-ci-diagnostics."
-          exit 1
