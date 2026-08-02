@@ -137,7 +137,7 @@ public:
     void drawToggleButton (juce::Graphics& g, juce::ToggleButton& button,
                            bool highlighted, bool down) override
     {
-        const auto bounds = button.getLocalBounds();
+        auto bounds = button.getLocalBounds();
         const auto box = bounds.removeFromLeft (44).reduced (2);
         g.setColour (button.getToggleState() || highlighted || down ? signal : paperLight);
         g.fillRect (box);
