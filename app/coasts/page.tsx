@@ -88,7 +88,8 @@ const midiToHz = (midi: number) => 440 * 2 ** ((midi - 69) / 12);
 const cutoffFromControl = (value: number) => Math.min(16000, 38 * 2 ** (value / 11.5));
 const timeFromControl = (value: number, min: number, max: number) => min * (max / min) ** (value / 100);
 const holdParam = (param: AudioParam, time: number) => {
-  if ("cancelAndHoldAtTime" in param) param.cancelAndHoldAtTime(time);
+  const cancellable = param as AudioParam & { cancelAndHoldAtTime?: (when: number) => AudioParam };
+  if (typeof cancellable.cancelAndHoldAtTime === "function") cancellable.cancelAndHoldAtTime(time);
   else {
     const current = param.value;
     param.cancelScheduledValues(time);
