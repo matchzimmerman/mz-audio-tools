@@ -1,14 +1,13 @@
 #include "PluginEditor.h"
 
-#include <algorithm>
+#include <cmath>
 
 namespace
 {
 const auto paper = juce::Colour (0xffeee9dc);
-const auto paperDeep = juce::Colour (0xffd5d0c4);
 const auto paperLight = juce::Colour (0xfffaf6eb);
 const auto ink = juce::Colour (0xff1d1d1b);
-const auto signal = juce::Colour (0xffdfff00);
+const auto accent = juce::Colour (0xffdfff00);
 const auto muted = juce::Colour (0xff77756e);
 const auto line = juce::Colour (0x521d1d1b);
 
@@ -31,10 +30,8 @@ public:
         setColour (juce::Slider::textBoxTextColourId, ink);
         setColour (juce::Slider::textBoxBackgroundColourId, paperLight);
         setColour (juce::Slider::textBoxOutlineColourId, ink);
-        setColour (juce::Slider::rotarySliderFillColourId, signal);
-        setColour (juce::Slider::rotarySliderOutlineColourId, ink);
         setColour (juce::TextButton::buttonColourId, paper);
-        setColour (juce::TextButton::buttonOnColourId, signal);
+        setColour (juce::TextButton::buttonOnColourId, accent);
         setColour (juce::TextButton::textColourOffId, ink);
         setColour (juce::TextButton::textColourOnId, ink);
         setColour (juce::ComboBox::backgroundColourId, paperLight);
@@ -43,14 +40,20 @@ public:
         setColour (juce::ComboBox::arrowColourId, ink);
         setColour (juce::PopupMenu::backgroundColourId, paperLight);
         setColour (juce::PopupMenu::textColourId, ink);
-        setColour (juce::PopupMenu::highlightedBackgroundColourId, signal);
+        setColour (juce::PopupMenu::highlightedBackgroundColourId, accent);
         setColour (juce::PopupMenu::highlightedTextColourId, ink);
         setColour (juce::Label::textColourId, ink);
         setColour (juce::ToggleButton::textColourId, ink);
     }
 
-    void drawRotarySlider (juce::Graphics& g, int x, int y, int width, int height,
-                           float position, float startAngle, float endAngle,
+    void drawRotarySlider (juce::Graphics& g,
+                           int x,
+                           int y,
+                           int width,
+                           int height,
+                           float position,
+                           float startAngle,
+                           float endAngle,
                            juce::Slider&) override
     {
         const auto bounds = juce::Rectangle<float> (static_cast<float> (x),
@@ -65,10 +68,12 @@ public:
         g.setColour (line);
         for (auto tick = 0; tick <= 20; ++tick)
         {
-            const auto tickAngle = startAngle + (endAngle - startAngle) * static_cast<float> (tick) / 20.0f;
-            const auto outside = centre + juce::Point<float> (std::sin (tickAngle), -std::cos (tickAngle)) * (radius + 5.0f);
-            const auto inside = centre + juce::Point<float> (std::sin (tickAngle), -std::cos (tickAngle)) * (radius + 1.0f);
-            g.drawLine ({ inside, outside }, 1.0f);
+            const auto tickAngle = startAngle
+                + (endAngle - startAngle) * static_cast<float> (tick) / 20.0f;
+            const auto direction = juce::Point<float> (std::sin (tickAngle), -std::cos (tickAngle));
+            g.drawLine (juce::Line<float> (centre + direction * (radius + 1.0f),
+                                           centre + direction * (radius + 5.0f)),
+                        1.0f);
         }
 
         g.setColour (paperLight);
@@ -77,50 +82,69 @@ public:
         g.drawEllipse (knob, 1.5f);
 
         juce::Path activeArc;
-        activeArc.addCentredArc (centre.x, centre.y, radius - 4.0f, radius - 4.0f,
-                                 0.0f, startAngle, angle, true);
-        g.setColour (signal);
+        activeArc.addCentredArc (centre.x,
+                                 centre.y,
+                                 radius - 4.0f,
+                                 radius - 4.0f,
+                                 0.0f,
+                                 startAngle,
+                                 angle,
+                                 true);
+        g.setColour (accent);
         g.strokePath (activeArc, juce::PathStrokeType (4.0f));
 
-        const auto pointerLength = radius * 0.65f;
-        const auto pointer = juce::Point<float> (std::sin (angle), -std::cos (angle)) * pointerLength;
+        const auto direction = juce::Point<float> (std::sin (angle), -std::cos (angle));
         g.setColour (ink);
-        g.drawLine ({ centre, centre + pointer }, 3.0f);
+        g.drawLine (juce::Line<float> (centre, centre + direction * (radius * 0.65f)), 3.0f);
         g.fillEllipse (juce::Rectangle<float> (5.0f, 5.0f).withCentre (centre));
     }
 
-    void drawButtonBackground (juce::Graphics& g, juce::Button& button,
-                               const juce::Colour&, bool highlighted, bool down) override
+    void drawButtonBackground (juce::Graphics& g,
+                               juce::Button& button,
+                               const juce::Colour&,
+                               bool highlighted,
+                               bool down) override
     {
         const auto selected = button.getToggleState() || down;
-        g.setColour (selected || highlighted ? signal : paper);
+        g.setColour (selected || highlighted ? accent : paper);
         g.fillRect (button.getLocalBounds());
         g.setColour (ink);
         g.drawRect (button.getLocalBounds(), 1);
 
         if (button.hasKeyboardFocus (true))
         {
-            g.setColour (signal);
+            g.setColour (accent);
             g.drawRect (button.getLocalBounds().reduced (3), 3);
         }
     }
 
-    void drawButtonText (juce::Graphics& g, juce::TextButton& button,
-                         bool, bool) override
+    void drawButtonText (juce::Graphics& g,
+                         juce::TextButton& button,
+                         bool,
+                         bool) override
     {
         g.setColour (ink);
         g.setFont (dataFont (10.0f));
-        g.drawFittedText (button.getButtonText(), button.getLocalBounds().reduced (8, 4),
-                          juce::Justification::centred, 2);
+        g.drawFittedText (button.getButtonText(),
+                          button.getLocalBounds().reduced (8, 4),
+                          juce::Justification::centred,
+                          2);
     }
 
-    void drawComboBox (juce::Graphics& g, int width, int height, bool,
-                       int, int, int, int, juce::ComboBox&) override
+    void drawComboBox (juce::Graphics& g,
+                       int width,
+                       int height,
+                       bool,
+                       int,
+                       int,
+                       int,
+                       int,
+                       juce::ComboBox&) override
     {
         g.setColour (paperLight);
-        g.fillRect (0, 0, width, height);
+        g.fillRect (juce::Rectangle<int> (0, 0, width, height));
         g.setColour (ink);
-        g.drawRect (0, 0, width, height, 1);
+        g.drawRect (juce::Rectangle<int> (0, 0, width, height), 1);
 
         juce::Path arrow;
         arrow.addTriangle (static_cast<float> (width - 20), static_cast<float> (height / 2 - 3),
@@ -134,26 +158,38 @@ public:
         return dataFont (10.0f);
     }
 
-    void drawToggleButton (juce::Graphics& g, juce::ToggleButton& button,
-                           bool highlighted, bool down) override
+    void drawToggleButton (juce::Graphics& g,
+                           juce::ToggleButton& button,
+                           bool highlighted,
+                           bool down) override
     {
         auto bounds = button.getLocalBounds();
         const auto box = bounds.removeFromLeft (44).reduced (2);
-        g.setColour (button.getToggleState() || highlighted || down ? signal : paperLight);
+
+        g.setColour (button.getToggleState() || highlighted || down ? accent : paperLight);
         g.fillRect (box);
         g.setColour (ink);
         g.drawRect (box, 1);
+
         if (button.getToggleState())
         {
-            g.drawLine (static_cast<float> (box.getX() + 9), static_cast<float> (box.getCentreY()),
-                        static_cast<float> (box.getCentreX() - 1), static_cast<float> (box.getBottom() - 9), 2.0f);
-            g.drawLine (static_cast<float> (box.getCentreX() - 1), static_cast<float> (box.getBottom() - 9),
-                        static_cast<float> (box.getRight() - 8), static_cast<float> (box.getY() + 8), 2.0f);
+            g.drawLine (static_cast<float> (box.getX() + 9),
+                        static_cast<float> (box.getCentreY()),
+                        static_cast<float> (box.getCentreX() - 1),
+                        static_cast<float> (box.getBottom() - 9),
+                        2.0f);
+            g.drawLine (static_cast<float> (box.getCentreX() - 1),
+                        static_cast<float> (box.getBottom() - 9),
+                        static_cast<float> (box.getRight() - 8),
+                        static_cast<float> (box.getY() + 8),
+                        2.0f);
         }
 
         g.setFont (dataFont (10.0f));
-        g.drawFittedText (button.getButtonText(), bounds.reduced (8, 0),
-                          juce::Justification::centredLeft, 2);
+        g.drawFittedText (button.getButtonText(),
+                          bounds.reduced (8, 0),
+                          juce::Justification::centredLeft,
+                          2);
     }
 };
 
@@ -268,14 +304,17 @@ public:
         g.drawRect (bounds, 1);
 
         g.setColour (line);
-        for (auto x = bounds.getX() + bounds.getWidth() / 8; x < bounds.getRight(); x += bounds.getWidth() / 8)
+        const auto verticalSpacing = juce::jmax (1, bounds.getWidth() / 8);
+        const auto horizontalSpacing = juce::jmax (1, bounds.getHeight() / 4);
+        for (auto x = bounds.getX() + verticalSpacing; x < bounds.getRight(); x += verticalSpacing)
             g.drawVerticalLine (x, static_cast<float> (bounds.getY()), static_cast<float> (bounds.getBottom()));
-        for (auto y = bounds.getY() + bounds.getHeight() / 4; y < bounds.getBottom(); y += bounds.getHeight() / 4)
+        for (auto y = bounds.getY() + horizontalSpacing; y < bounds.getBottom(); y += horizontalSpacing)
             g.drawHorizontalLine (y, static_cast<float> (bounds.getX()), static_cast<float> (bounds.getRight()));
 
         g.setColour (muted);
         g.setFont (dataFont (9.0f));
-        g.drawText ("LIVE OUTPUT / BLOCK ENERGY", bounds.reduced (10).removeFromTop (18),
+        g.drawText ("LIVE OUTPUT / BLOCK ENERGY",
+                    bounds.reduced (10).removeFromTop (18),
                     juce::Justification::centredLeft);
 
         juce::Path path;
@@ -291,14 +330,16 @@ public:
                 path.lineTo (x, y);
         }
 
-        g.setColour (processor.getActiveMidiNote() >= 0 ? signal : ink);
+        g.setColour (processor.getActiveMidiNote() >= 0 ? accent : ink);
         g.strokePath (path, juce::PathStrokeType (2.0f));
     }
 
 private:
     void timerCallback() override
     {
-        std::move (history.begin() + 1, history.end(), history.begin());
+        for (size_t index = 1; index < history.size(); ++index)
+            history[index - 1] = history[index];
+
         history.back() = juce::jlimit (0.0f, 1.0f, processor.getOutputLevel() * 1.8f);
         repaint();
     }
@@ -315,7 +356,6 @@ CoastsAudioProcessorEditor::CoastsAudioProcessorEditor (CoastsAudioProcessor& ow
     setOpaque (true);
     setResizable (true, true);
     setResizeLimits (820, 620, 1500, 980);
-    setSize (1040, 720);
 
     eastButton.setClickingTogglesState (false);
     westButton.setClickingTogglesState (false);
@@ -330,9 +370,13 @@ CoastsAudioProcessorEditor::CoastsAudioProcessorEditor (CoastsAudioProcessor& ow
     masterGain = std::make_unique<KnobControl> (processor.parameters, "masterGain", "OUTPUT / dB");
     addAndMakeVisible (*masterGain);
 
-    eastOsc1 = std::make_unique<ChoiceControl> (processor.parameters, "eastOsc1", "OSCILLATOR 1",
+    eastOsc1 = std::make_unique<ChoiceControl> (processor.parameters,
+                                                "eastOsc1",
+                                                "OSCILLATOR 1",
                                                 juce::StringArray { "SAW", "PULSE", "TRIANGLE" });
-    eastOsc2 = std::make_unique<ChoiceControl> (processor.parameters, "eastOsc2", "OSCILLATOR 2",
+    eastOsc2 = std::make_unique<ChoiceControl> (processor.parameters,
+                                                "eastOsc2",
+                                                "OSCILLATOR 2",
                                                 juce::StringArray { "SAW", "PULSE", "TRIANGLE" });
     eastDetune = std::make_unique<KnobControl> (processor.parameters, "eastDetune", "DETUNE / CENTS");
     eastBalance = std::make_unique<KnobControl> (processor.parameters, "eastBalance", "BALANCE");
@@ -348,7 +392,9 @@ CoastsAudioProcessorEditor::CoastsAudioProcessorEditor (CoastsAudioProcessor& ow
                        eastCutoff.get(), eastResonance.get(), eastFilterEnv.get(), eastAttack.get(),
                        eastDecay.get(), eastSustain.get(), eastRelease.get() };
 
-    westRatio = std::make_unique<ChoiceControl> (processor.parameters, "westRatio", "MODULATION RATIO",
+    westRatio = std::make_unique<ChoiceControl> (processor.parameters,
+                                                 "westRatio",
+                                                 "MODULATION RATIO",
                                                  juce::StringArray { "0.5:1", "1:1", "1.5:1", "2:1", "3:1", "4:1" });
     westFm = std::make_unique<KnobControl> (processor.parameters, "westFm", "FM INDEX");
     westFold = std::make_unique<KnobControl> (processor.parameters, "westFold", "FOLD");
@@ -369,6 +415,7 @@ CoastsAudioProcessorEditor::CoastsAudioProcessorEditor (CoastsAudioProcessor& ow
     for (auto* component : westComponents)
         addAndMakeVisible (*component);
 
+    setSize (1040, 720);
     updateModeVisibility();
     startTimerHz (15);
 }
@@ -388,8 +435,8 @@ void CoastsAudioProcessorEditor::paint (juce::Graphics& g)
     g.fillRect (masthead.removeFromTop (2));
     g.fillRect (masthead.removeFromBottom (2));
 
-    auto plate = juce::Rectangle<int> (20, 30, 62, 54);
-    g.setColour (signal);
+    const auto plate = juce::Rectangle<int> (20, 30, 62, 54);
+    g.setColour (accent);
     g.fillRect (plate);
     g.setColour (ink);
     g.drawRect (plate, 1);
@@ -397,19 +444,26 @@ void CoastsAudioProcessorEditor::paint (juce::Graphics& g)
     g.drawFittedText ("MZ-04", plate, juce::Justification::centred, 1);
 
     g.setFont (displayFont (52.0f));
-    g.drawFittedText ("COASTS", { 96, 22, width - 260, 52 },
-                      juce::Justification::centredLeft, 1);
+    g.drawFittedText ("COASTS",
+                      juce::Rectangle<int> (96, 22, width - 260, 52),
+                      juce::Justification::centredLeft,
+                      1);
     g.setFont (dataFont (10.0f));
     g.drawText ("DUAL SYNTHESIS PHILOSOPHY / EAST ↔ WEST / NATIVE UNIT 0.1",
-                { 99, 73, width - 280, 18 }, juce::Justification::centredLeft);
+                juce::Rectangle<int> (99, 73, width - 280, 18),
+                juce::Justification::centredLeft);
 
-    const auto mode = juce::roundToInt (processor.parameters.getRawParameterValue ("mode")->load());
+    const auto mode = juce::roundToInt (
+        processor.parameters.getRawParameterValue ("mode")->load());
     const auto note = processor.getActiveMidiNote();
-    const auto level = juce::jlimit (0, 100, juce::roundToInt (processor.getOutputLevel() * 100.0f));
+    const auto level = juce::jlimit (0,
+                                     100,
+                                     juce::roundToInt (processor.getOutputLevel() * 100.0f));
 
-    auto registerBounds = juce::Rectangle<int> (20, 310, width - 40, 54);
+    const auto registerBounds = juce::Rectangle<int> (20, 310, width - 40, 54);
     g.setColour (ink);
     g.drawRect (registerBounds, 1);
+
     const auto cellWidth = registerBounds.getWidth() / 4;
     const juce::String values[] {
         mode == 0 ? "SUBTRACTIVE" : "COMPLEX TIMBRE",
@@ -417,22 +471,32 @@ void CoastsAudioProcessorEditor::paint (juce::Graphics& g)
         note >= 0 ? juce::MidiMessage::getMidiNoteName (note, true, true, 3) : "AWAITING MIDI",
         juce::String (level).paddedLeft ('0', 3) + "%"
     };
-    const juce::String labels[] { "METHOD", "ACTIVE SIGNAL PATH", "CURRENT NOTE", "OUTPUT LEVEL" };
+    const juce::String labels[] {
+        "METHOD", "ACTIVE SIGNAL PATH", "CURRENT NOTE", "OUTPUT LEVEL"
+    };
 
     for (auto index = 0; index < 4; ++index)
     {
-        auto cell = juce::Rectangle<int> (registerBounds.getX() + index * cellWidth,
-                                          registerBounds.getY(), cellWidth,
-                                          registerBounds.getHeight());
+        const auto cell = juce::Rectangle<int> (registerBounds.getX() + index * cellWidth,
+                                                registerBounds.getY(),
+                                                cellWidth,
+                                                registerBounds.getHeight());
         if (index > 0)
-            g.drawVerticalLine (cell.getX(), static_cast<float> (cell.getY()), static_cast<float> (cell.getBottom()));
+            g.drawVerticalLine (cell.getX(),
+                                static_cast<float> (cell.getY()),
+                                static_cast<float> (cell.getBottom()));
+
         g.setColour (muted);
         g.setFont (dataFont (8.5f));
-        g.drawText (labels[index], cell.reduced (10).removeFromTop (18), juce::Justification::centredLeft);
+        g.drawText (labels[index],
+                    cell.reduced (10).removeFromTop (18),
+                    juce::Justification::centredLeft);
         g.setColour (ink);
         g.setFont (dataFont (11.0f));
-        g.drawFittedText (values[index], cell.reduced (10).withTrimmedTop (18),
-                          juce::Justification::centredLeft, 1);
+        g.drawFittedText (values[index],
+                          cell.reduced (10).withTrimmedTop (18),
+                          juce::Justification::centredLeft,
+                          1);
     }
 
     if (mode == 0)
@@ -451,11 +515,15 @@ void CoastsAudioProcessorEditor::paint (juce::Graphics& g)
     g.setColour (muted);
     g.setFont (dataFont (8.5f));
     g.drawText ("MZ AUDIO LAB / VST3 + AU + STANDALONE / MIDI IN / MONOPHONIC SIGNAL PATH",
-                { 20, getHeight() - 28, width - 40, 16 }, juce::Justification::centredLeft);
+                juce::Rectangle<int> (20, getHeight() - 28, width - 40, 16),
+                juce::Justification::centredLeft);
 }
 
 void CoastsAudioProcessorEditor::resized()
 {
+    if (outputTrace == nullptr || masterGain == nullptr)
+        return;
+
     const auto width = getWidth();
     eastButton.setBounds (20, 106, (width - 40) / 2, 48);
     westButton.setBounds (20 + (width - 40) / 2, 106, (width - 40) / 2, 48);
@@ -463,7 +531,7 @@ void CoastsAudioProcessorEditor::resized()
     masterGain->setBounds (width - 142, 22, 106, 72);
 
     auto modules = juce::Rectangle<int> (20, 372, width - 40, getHeight() - 414);
-    const auto gap = 6;
+    constexpr auto gap = 6;
     const auto columnWidth = (modules.getWidth() - gap * 2) / 3;
     moduleBounds[0] = modules.removeFromLeft (columnWidth);
     modules.removeFromLeft (gap);
@@ -472,9 +540,9 @@ void CoastsAudioProcessorEditor::resized()
     moduleBounds[2] = modules;
 
     if (visibleMode == 0)
-        layoutEastControls ({ 20, 372, width - 40, getHeight() - 414 });
+        layoutEastControls (juce::Rectangle<int> (20, 372, width - 40, getHeight() - 414));
     else
-        layoutWestControls ({ 20, 372, width - 40, getHeight() - 414 });
+        layoutWestControls (juce::Rectangle<int> (20, 372, width - 40, getHeight() - 414));
 }
 
 void CoastsAudioProcessorEditor::timerCallback()
@@ -495,7 +563,8 @@ void CoastsAudioProcessorEditor::setMode (int modeIndex)
 
 void CoastsAudioProcessorEditor::updateModeVisibility()
 {
-    const auto mode = juce::roundToInt (processor.parameters.getRawParameterValue ("mode")->load());
+    const auto mode = juce::roundToInt (
+        processor.parameters.getRawParameterValue ("mode")->load());
     if (mode == visibleMode)
         return;
 
@@ -570,8 +639,11 @@ void CoastsAudioProcessorEditor::drawModule (juce::Graphics& g,
                           static_cast<float> (bounds.getX()),
                           static_cast<float> (bounds.getRight()));
 
-    auto indexBounds = juce::Rectangle<int> (bounds.getX() + 10, bounds.getY() + 13, 26, 26);
-    g.setColour (signal);
+    const auto indexBounds = juce::Rectangle<int> (bounds.getX() + 10,
+                                                    bounds.getY() + 13,
+                                                    26,
+                                                    26);
+    g.setColour (accent);
     g.fillRect (indexBounds);
     g.setColour (ink);
     g.drawRect (indexBounds, 1);
@@ -579,15 +651,29 @@ void CoastsAudioProcessorEditor::drawModule (juce::Graphics& g,
     g.drawText (index, indexBounds, juce::Justification::centred);
 
     g.setFont (displayFont (16.0f));
-    g.drawFittedText (title, { bounds.getX() + 46, bounds.getY() + 9, bounds.getWidth() - 94, 22 },
-                      juce::Justification::centredLeft, 1);
+    g.drawFittedText (title,
+                      juce::Rectangle<int> (bounds.getX() + 46,
+                                            bounds.getY() + 9,
+                                            bounds.getWidth() - 94,
+                                            22),
+                      juce::Justification::centredLeft,
+                      1);
     g.setColour (muted);
     g.setFont (dataFont (8.0f));
-    g.drawFittedText (subtitle, { bounds.getX() + 46, bounds.getY() + 29, bounds.getWidth() - 94, 14 },
-                      juce::Justification::centredLeft, 1);
+    g.drawFittedText (subtitle,
+                      juce::Rectangle<int> (bounds.getX() + 46,
+                                            bounds.getY() + 29,
+                                            bounds.getWidth() - 94,
+                                            14),
+                      juce::Justification::centredLeft,
+                      1);
     g.setColour (ink);
     g.setFont (dataFont (9.0f));
-    g.drawText (code, { bounds.getRight() - 44, bounds.getY() + 13, 34, 26 },
+    g.drawText (code,
+                juce::Rectangle<int> (bounds.getRight() - 44,
+                                      bounds.getY() + 13,
+                                      34,
+                                      26),
                 juce::Justification::centredRight);
 }
 
