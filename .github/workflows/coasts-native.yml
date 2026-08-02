@@ -1,6 +1,12 @@
 name: Build COASTS Native
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - "native/coasts/**"
+      - ".github/workflows/coasts-native.yml"
   pull_request:
     paths:
       - "native/coasts/**"
