@@ -9,6 +9,10 @@ const nextConfig: NextConfig = {
   basePath,
   assetPrefix: basePath || undefined,
   images: { unoptimized: true },
+  // The Pages export contains only the client-side instrument routes.
+  // Cloudflare worker/database files remain in the repository for the
+  // original hosting workflow, but are not part of this static site.
+  typescript: { ignoreBuildErrors: isPages },
 };
 
 export default nextConfig;
