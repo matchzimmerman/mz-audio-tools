@@ -42,6 +42,14 @@ public:
 private:
     enum class WestStage { idle, rise, fall, release };
 
+    // This overload intentionally hides AudioProcessor::getParameter(int).
+    // All DSP reads go through stable APVTS parameter IDs.
+    static float getParameter (const juce::AudioProcessorValueTreeState& state,
+                               const char* id) noexcept
+    {
+        return state.getRawParameterValue (id)->load();
+    }
+
     void renderRange (juce::AudioBuffer<float>& buffer, int startSample, int numSamples);
     void handleMidiMessage (const juce::MidiMessage& message);
     void noteOn (int midiNote, float velocity);
