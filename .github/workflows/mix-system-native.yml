@@ -1,0 +1,148 @@
+name: Build MZ Mix System Native
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "native/mix-system/**"
+      - ".github/workflows/mix-system-native.yml"
+  pull_request:
+    paths:
+      - "native/mix-system/**"
+      - ".github/workflows/mix-system-native.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  macos-universal:
+    runs-on: macos-15
+    timeout-minutes: 50
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Configure universal macOS build
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p native/mix-system/ci-logs/macos
+          cmake -S native/mix-system -B native/mix-system/build -G Xcode \
+            -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0 \
+            2>&1 | tee native/mix-system/ci-logs/macos/configure.log
+
+      - name: Build AU VST3 and standalone
+        shell: bash
+        run: |
+          set -o pipefail
+          cmake --build native/mix-system/build --config Release \
+            --target MZMixSystem_All --parallel 3 \
+            2>&1 | tee native/mix-system/ci-logs/macos/build.log
+
+      - name: Collect macOS bundles
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf native/mix-system/dist-macos
+          mkdir -p native/mix-system/dist-macos
+
+          bundle_count=0
+          while IFS= read -r -d '' bundle; do
+            cp -R "$bundle" native/mix-system/dist-macos/
+            bundle_count=$((bundle_count + 1))
+          done < <(
+            find native/mix-system/build/MZMixSystem_artefacts/Release \
+              -maxdepth 3 -type d \
+              \( -name '*.vst3' -o -name '*.component' -o -name '*.app' \) \
+              -print0
+          )
+
+          echo "Collected ${bundle_count} macOS bundles"
+          test "$bundle_count" -ge 3
+          ditto -c -k --sequesterRsrc --keepParent \
+            native/mix-system/dist-macos native/mix-system/MZ-MIX-SYSTEM-macOS.zip
+
+      - name: Upload macOS diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: MZ-MIX-SYSTEM-macOS-diagnostics
+          path: native/mix-system/ci-logs/macos
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload unsigned macOS build
+        uses: actions/upload-artifact@v4
+        with:
+          name: MZ-MIX-SYSTEM-macOS-unsigned
+          path: native/mix-system/MZ-MIX-SYSTEM-macOS.zip
+          if-no-files-found: error
+          retention-days: 14
+
+  windows-x64:
+    runs-on: windows-latest
+    timeout-minutes: 50
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Configure Windows x64 build
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force native/mix-system/ci-logs/windows | Out-Null
+          cmake -S native/mix-system -B native/mix-system/build-windows `
+            -G "Visual Studio 18 2026" -A x64 `
+            2>&1 | Tee-Object native/mix-system/ci-logs/windows/configure.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Build VST3 and standalone
+        shell: pwsh
+        run: |
+          cmake --build native/mix-system/build-windows --config Release `
+            --target MZMixSystem_All --parallel 3 `
+            2>&1 | Tee-Object native/mix-system/ci-logs/windows/build.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Collect Windows bundles
+        shell: pwsh
+        run: |
+          $source = "native/mix-system/build-windows/MZMixSystem_artefacts/Release"
+          $dist = "native/mix-system/dist-windows"
+          Remove-Item $dist -Recurse -Force -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Force $dist | Out-Null
+
+          Get-ChildItem $source -Recurse -Directory -Filter *.vst3 | ForEach-Object {
+            Copy-Item $_.FullName $dist -Recurse -Force
+          }
+          Get-ChildItem $source -Recurse -File -Filter *.exe | ForEach-Object {
+            Copy-Item $_.FullName $dist -Force
+          }
+
+          $count = (Get-ChildItem $dist).Count
+          Write-Host "Collected $count Windows bundles"
+          if ($count -lt 2) { throw "Expected VST3 and standalone outputs" }
+
+          Compress-Archive -Path "$dist/*" `
+            -DestinationPath native/mix-system/MZ-MIX-SYSTEM-Windows.zip -Force
+
+      - name: Upload Windows diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: MZ-MIX-SYSTEM-Windows-diagnostics
+          path: native/mix-system/ci-logs/windows
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload unsigned Windows build
+        uses: actions/upload-artifact@v4
+        with:
+          name: MZ-MIX-SYSTEM-Windows-unsigned
+          path: native/mix-system/MZ-MIX-SYSTEM-Windows.zip
+          if-no-files-found: error
+          retention-days: 14
