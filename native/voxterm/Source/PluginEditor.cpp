@@ -43,7 +43,7 @@ VoxTermAudioProcessorEditor::VoxTermAudioProcessorEditor (VoxTermAudioProcessor&
     messageEditor.setColour (juce::TextEditor::outlineColourId, dimGreen);
     messageEditor.setColour (juce::TextEditor::focusedOutlineColourId, terminalGreen);
     messageEditor.setColour (juce::CaretComponent::caretColourId, terminalGreen);
-    messageEditor.setFont (juce::Font (juce::FontOptions (18.0f).withTypefaceStyle ("Regular")));
+    messageEditor.setFont (juce::Font (juce::FontOptions (18.0f).withStyle ("Regular")));
     messageEditor.setText (processor.getMessageText(), false);
     messageEditor.setInputRestrictions (512);
     messageEditor.onTextChange = [this]
@@ -63,7 +63,7 @@ VoxTermAudioProcessorEditor::VoxTermAudioProcessorEditor (VoxTermAudioProcessor&
 
     statusLabel.setJustificationType (juce::Justification::centredLeft);
     statusLabel.setColour (juce::Label::textColourId, terminalGreen);
-    statusLabel.setFont (juce::Font (juce::FontOptions (14.0f).withTypefaceStyle ("Bold")));
+    statusLabel.setFont (juce::Font (juce::FontOptions (14.0f).withStyle ("Bold")));
     addAndMakeVisible (statusLabel);
 
     configureCombo (voiceBox, "VOICE PROFILE",
@@ -156,12 +156,12 @@ void VoxTermAudioProcessorEditor::paint (juce::Graphics& g)
     }
 
     g.setColour (terminalGreen);
-    g.setFont (juce::Font (juce::FontOptions (32.0f).withTypefaceStyle ("Bold")));
+    g.setFont (juce::Font (juce::FontOptions (32.0f).withStyle ("Bold")));
     g.drawText ("MZ-05  VOX//TERM", 28, 18, getWidth() - 56, 38,
                 juce::Justification::centredLeft, false);
 
     g.setColour (dimGreen);
-    g.setFont (juce::Font (juce::FontOptions (12.0f).withTypefaceStyle ("Bold")));
+    g.setFont (juce::Font (juce::FontOptions (12.0f).withStyle ("Bold")));
     g.drawText ("TEXT-TO-MACHINE SPEECH INSTRUMENT  //  FIELD BUILD 0.1",
                 30, 56, getWidth() - 60, 20,
                 juce::Justification::centredLeft, false);
@@ -173,7 +173,7 @@ void VoxTermAudioProcessorEditor::paint (juce::Graphics& g)
     g.setColour (dimGreen);
     g.drawRect (messagePanel, 1);
     g.setColour (terminalGreen);
-    g.setFont (juce::Font (juce::FontOptions (11.0f).withTypefaceStyle ("Bold")));
+    g.setFont (juce::Font (juce::FontOptions (11.0f).withStyle ("Bold")));
     g.drawText ("INPUT BUFFER // TYPE PHRASE BELOW",
                 messagePanel.getX() + 12, messagePanel.getY() + 7,
                 messagePanel.getWidth() - 24, 16,
@@ -211,7 +211,7 @@ void VoxTermAudioProcessorEditor::drawControlLabel (juce::Graphics& g,
                                                      const juce::Component& component) const
 {
     g.setColour (terminalGreen.withAlpha (0.86f));
-    g.setFont (juce::Font (juce::FontOptions (10.0f).withTypefaceStyle ("Bold")));
+    g.setFont (juce::Font (juce::FontOptions (10.0f).withStyle ("Bold")));
     const auto bounds = component.getBounds();
     g.drawText (component.getName(), bounds.getX(), bounds.getY() - 18,
                 bounds.getWidth(), 14, juce::Justification::centred, false);
