@@ -1,32 +1,40 @@
 import type { Metadata } from "next";
-import { headers } from "next/headers";
 
-export async function generateMetadata(): Promise<Metadata> {
-  const requestHeaders = await headers();
-  const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host") ?? "localhost";
-  const protocol = requestHeaders.get("x-forwarded-proto") ?? (host.includes("localhost") ? "http" : "https");
-  const previewImage = `${protocol}://${host}/serial-og.png`;
-  const title = "Serial — Sequential Effects Lab";
-  const description = "A playable introduction to audio effect chains. Drag, snap, listen, and reorder real effects in the browser.";
+const siteUrl = "https://matchzimmerman.github.io/mz-audio-tools";
+const previewImage = `${siteUrl}/serial-og.png`;
+const title = "Serial — Sequential Effects Lab";
+const description =
+  "A playable introduction to audio effect chains. Drag, snap, listen, and reorder real effects in the browser.";
 
-  return {
+export const dynamic = "force-static";
+
+export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
+  title,
+  description,
+  openGraph: {
     title,
     description,
-    openGraph: {
-      title,
-      description,
-      type: "website",
-      images: [{ url: previewImage, width: 1200, height: 630, alt: "Serial sequential effects lab signal chain" }],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description,
-      images: [previewImage],
-    },
-  };
-}
+    type: "website",
+    images: [
+      {
+        url: previewImage,
+        width: 1200,
+        height: 630,
+        alt: "Serial sequential effects lab signal chain",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title,
+    description,
+    images: [previewImage],
+  },
+};
 
-export default function SerialLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <>{children}</>;
+export default function SerialLayout({
+  children,
+}: Readonly<{ children: React.ReactNode }>) {
+  return children;
 }
