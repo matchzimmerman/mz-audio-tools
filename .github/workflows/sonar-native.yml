@@ -1,0 +1,85 @@
+name: Build SONAR Native
+
+on:
+  pull_request:
+    paths:
+      - "native/sonar/**"
+      - ".github/workflows/sonar-native.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  macos-universal:
+    runs-on: macos-15
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Configure universal macOS build
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p native/sonar/ci-logs
+          cmake -S native/sonar -B native/sonar/build -G Xcode \
+            -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0 \
+            2>&1 | tee native/sonar/ci-logs/configure.log
+
+      - name: Build VST3 AU and standalone
+        shell: bash
+        run: |
+          set -o pipefail
+          cmake --build native/sonar/build --config Release --target Sonar_All --parallel 3 \
+            2>&1 | tee native/sonar/ci-logs/build.log
+
+      - name: Inventory build output
+        if: always()
+        shell: bash
+        run: |
+          find native/sonar/build -maxdepth 6 -print \
+            | sort \
+            | tee native/sonar/ci-logs/build-tree.txt
+
+      - name: Collect plug-in bundles
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf native/sonar/dist
+          mkdir -p native/sonar/dist
+
+          bundle_count=0
+          while IFS= read -r -d '' bundle; do
+            cp -R "$bundle" native/sonar/dist/
+            bundle_count=$((bundle_count + 1))
+          done < <(
+            find native/sonar/build/Sonar_artefacts/Release \
+              -maxdepth 3 -type d \
+              \( -name '*.vst3' -o -name '*.component' -o -name '*.app' \) \
+              -print0
+          )
+
+          echo "Collected ${bundle_count} native bundles"
+          test "$bundle_count" -ge 3
+          ditto -c -k --sequesterRsrc --keepParent \
+            native/sonar/dist native/sonar/MZ-05-SONAR-macOS.zip
+
+      - name: Upload CI diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: MZ-05-SONAR-ci-diagnostics
+          path: native/sonar/ci-logs
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload unsigned development build
+        uses: actions/upload-artifact@v4
+        with:
+          name: MZ-05-SONAR-macOS-unsigned
+          path: native/sonar/MZ-05-SONAR-macOS.zip
+          if-no-files-found: error
+          retention-days: 14
