@@ -1,0 +1,91 @@
+name: Build VOXTERM Native
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "native/voxterm/**"
+      - ".github/workflows/voxterm-native.yml"
+  pull_request:
+    paths:
+      - "native/voxterm/**"
+      - ".github/workflows/voxterm-native.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  macos-universal:
+    runs-on: macos-15
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Configure universal macOS build
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p native/voxterm/ci-logs
+          cmake -S native/voxterm -B native/voxterm/build -G Xcode \
+            -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0 \
+            2>&1 | tee native/voxterm/ci-logs/configure.log
+
+      - name: Build VST3 AU and standalone
+        shell: bash
+        run: |
+          set -o pipefail
+          cmake --build native/voxterm/build --config Release --target VoxTerm_All --parallel 3 \
+            2>&1 | tee native/voxterm/ci-logs/build.log
+
+      - name: Inventory build output
+        if: always()
+        shell: bash
+        run: |
+          find native/voxterm/build -maxdepth 6 -print \
+            | sort \
+            | tee native/voxterm/ci-logs/build-tree.txt
+
+      - name: Collect plug-in bundles
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf native/voxterm/dist
+          mkdir -p native/voxterm/dist
+
+          bundle_count=0
+          while IFS= read -r -d '' bundle; do
+            cp -R "$bundle" native/voxterm/dist/
+            bundle_count=$((bundle_count + 1))
+          done < <(
+            find native/voxterm/build/VoxTerm_artefacts/Release \
+              -maxdepth 3 -type d \
+              \( -name '*.vst3' -o -name '*.component' -o -name '*.app' \) \
+              -print0
+          )
+
+          echo "Collected ${bundle_count} native bundles"
+          test "$bundle_count" -ge 3
+          ditto -c -k --sequesterRsrc --keepParent \
+            native/voxterm/dist native/voxterm/MZ-05-VOXTERM-macOS.zip
+
+      - name: Upload CI diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: MZ-05-VOXTERM-ci-diagnostics
+          path: native/voxterm/ci-logs
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload unsigned development build
+        uses: actions/upload-artifact@v4
+        with:
+          name: MZ-05-VOXTERM-macOS-unsigned
+          path: native/voxterm/MZ-05-VOXTERM-macOS.zip
+          if-no-files-found: error
+          retention-days: 14
