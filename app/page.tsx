@@ -25,6 +25,14 @@ const UNITS = [
     description: "One oscillator, one modulator, one decay per voice — a 16-step drum machine tuned to D Phrygian.",
     href: "/erd",
   },
+  {
+    id: "04",
+    plate: "MZ–04",
+    name: "COASTS",
+    tagline: "DUAL SYNTHESIS PHILOSOPHY",
+    description: "Toggle between East Coast subtractive control and West Coast complex timbre, touch voltage, and low-pass gates.",
+    href: "/coasts",
+  },
 ];
 
 export default function IndexPage() {
@@ -53,7 +61,7 @@ export default function IndexPage() {
 
       <footer className="mz-foot">
         <span>MZ AUDIO TOOLS</span>
-        <span>3 INSTRUMENTS / WEB AUDIO / NO SAMPLES</span>
+        <span>4 INSTRUMENTS / WEB AUDIO / NO SAMPLES</span>
         <span>FIELD STATION INDEX</span>
       </footer>
     </main>
@@ -68,7 +76,7 @@ const STYLES = `
 .mz-masthead h1{ margin:0; font-size:clamp(40px,7vw,84px); font-weight:900; letter-spacing:-.06em; line-height:.8; }
 .mz-masthead p{ margin:8px 0 0; font:700 10px/1 monospace; letter-spacing:.16em; color:var(--muted); }
 
-.mz-units{ display:grid; grid-template-columns:repeat(3,1fr); border-top:1.5px solid var(--ink); border-bottom:1.5px solid var(--ink); }
+.mz-units{ display:grid; grid-template-columns:repeat(4,1fr); border-top:1.5px solid var(--ink); border-bottom:1.5px solid var(--ink); }
 .mz-unit{ display:flex; flex-direction:column; gap:8px; padding:18px 20px 20px; border-right:1px solid var(--ink);
   text-decoration:none; color:var(--ink); transition:background .14s ease; }
 .mz-unit:last-child{ border-right:0; }
@@ -84,7 +92,12 @@ const STYLES = `
 
 .mz-foot{ display:flex; justify-content:space-between; padding-top:16px; font:700 7px/1 monospace; color:var(--muted); letter-spacing:.08em; flex-wrap:wrap; gap:4px; }
 
-@media(max-width:900px){
+@media(max-width:1100px){
+  .mz-units{ grid-template-columns:repeat(2,1fr); }
+  .mz-unit:nth-child(2){ border-right:0; }
+  .mz-unit:nth-child(-n+2){ border-bottom:1px solid var(--ink); }
+}
+@media(max-width:650px){
   .mz-units{ grid-template-columns:1fr; }
   .mz-unit{ border-right:0; border-bottom:1px solid var(--ink); }
   .mz-unit:last-child{ border-bottom:0; }
