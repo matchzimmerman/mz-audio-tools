@@ -24,7 +24,7 @@ juce_add_plugin(VoxTerm
   PLUGIN_MANUFACTURER_CODE Mzcm
   PLUGIN_CODE VxTm
   FORMATS AU VST3 Standalone
-  PRODUCT_NAME "MZ-05 VOX//TERM"
+  PRODUCT_NAME "MZ-05 VOXTERM"
 )
 
 juce_generate_juce_header(VoxTerm)
