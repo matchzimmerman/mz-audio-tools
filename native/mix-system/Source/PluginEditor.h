@@ -25,6 +25,10 @@ private:
     void drawNodePanel (juce::Graphics&);
     void drawConductorPanel (juce::Graphics&);
     void drawLevelMeter (juce::Graphics&, juce::Rectangle<float> area, float rms);
+    void drawSpectralMeter (juce::Graphics&,
+                            juce::Rectangle<float> area,
+                            const mz::SpectralValues& spectrum,
+                            const mz::SpectralValues& reductions);
 
     MZMixSystemAudioProcessor& processor;
     juce::LookAndFeel_V4 look;
@@ -37,6 +41,7 @@ private:
     juce::ComboBox densityBox;
     juce::Slider importanceSlider;
     juce::Slider outputTrimSlider;
+    juce::Slider spectralDepthSlider;
     juce::Slider globalAutoSlider;
 
     std::unique_ptr<ComboAttachment> modeAttachment;
@@ -47,6 +52,7 @@ private:
     std::unique_ptr<ComboAttachment> densityAttachment;
     std::unique_ptr<SliderAttachment> importanceAttachment;
     std::unique_ptr<SliderAttachment> outputTrimAttachment;
+    std::unique_ptr<SliderAttachment> spectralDepthAttachment;
     std::unique_ptr<SliderAttachment> globalAutoAttachment;
 
     bool previousConductorState = false;
