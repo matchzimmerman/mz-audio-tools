@@ -13,14 +13,22 @@ juce::String dbText (float linear)
 {
     return juce::String (juce::Decibels::gainToDecibels (linear, -72.0f), 1) + " dB";
 }
+
+float strongestReduction (const mz::SpectralValues& reductions)
+{
+    auto result = 0.0f;
+    for (const auto value : reductions)
+        result = juce::jmin (result, value);
+    return result;
+}
 }
 
 MZMixSystemAudioProcessorEditor::MZMixSystemAudioProcessorEditor (MZMixSystemAudioProcessor& p)
     : AudioProcessorEditor (&p), processor (p)
 {
-    setSize (1020, 700);
+    setSize (1060, 760);
     setResizable (true, true);
-    setResizeLimits (820, 590, 1500, 1000);
+    setResizeLimits (860, 650, 1500, 1050);
 
     look.setColour (juce::ComboBox::backgroundColourId, ink);
     look.setColour (juce::ComboBox::textColourId, acid);
@@ -45,11 +53,12 @@ MZMixSystemAudioProcessorEditor::MZMixSystemAudioProcessorEditor (MZMixSystemAud
     configureSlider (importanceSlider, "", 0);
     importanceSlider.setRange (1.0, 5.0, 1.0);
     configureSlider (outputTrimSlider, " dB", 1);
+    configureSlider (spectralDepthSlider, " %", 0);
     configureSlider (globalAutoSlider, " %", 0);
 
-    for (auto* component : std::array<juce::Component*, 9>
+    for (auto* component : std::array<juce::Component*, 10>
          { &modeBox, &roleBox, &autoBox, &widthBox, &monoBox, &densityBox,
-           &importanceSlider, &outputTrimSlider, &globalAutoSlider })
+           &importanceSlider, &outputTrimSlider, &spectralDepthSlider, &globalAutoSlider })
         addAndMakeVisible (*component);
 
     modeAttachment = std::make_unique<ComboAttachment> (processor.parameters, "mode", modeBox);
@@ -60,7 +69,10 @@ MZMixSystemAudioProcessorEditor::MZMixSystemAudioProcessorEditor (MZMixSystemAud
     densityAttachment = std::make_unique<ComboAttachment> (processor.parameters, "density", densityBox);
     importanceAttachment = std::make_unique<SliderAttachment> (processor.parameters, "importance", importanceSlider);
     outputTrimAttachment = std::make_unique<SliderAttachment> (processor.parameters, "outputTrim", outputTrimSlider);
-    globalAutoAttachment = std::make_unique<SliderAttachment> (processor.parameters, "globalAuto", globalAutoSlider);
+    spectralDepthAttachment = std::make_unique<SliderAttachment> (
+        processor.parameters, "spectralDepth", spectralDepthSlider);
+    globalAutoAttachment = std::make_unique<SliderAttachment> (
+        processor.parameters, "globalAuto", globalAutoSlider);
 
     previousConductorState = ! processor.isConductorMode();
     updateModeVisibility();
@@ -109,6 +121,7 @@ void MZMixSystemAudioProcessorEditor::updateModeVisibility()
     densityBox.setVisible (! conductor);
     importanceSlider.setVisible (! conductor);
     outputTrimSlider.setVisible (! conductor);
+    spectralDepthSlider.setVisible (! conductor);
     globalAutoSlider.setVisible (conductor);
     resized();
 }
@@ -134,7 +147,7 @@ void MZMixSystemAudioProcessorEditor::drawHeader (juce::Graphics& g)
     g.drawText ("MZ MIX SYSTEM", header.removeFromTop (38), juce::Justification::centredLeft);
 
     g.setFont (juce::Font (juce::FontOptions (12.0f).withStyle ("Bold")));
-    g.drawText ("ROLE-AWARE INTER-INSTANCE MIX ECOLOGY / FIELD SPECIMEN 0.1",
+    g.drawText ("ROLE-AWARE INTER-INSTANCE MIX ECOLOGY / FIELD SPECIMEN 0.2",
                 header.removeFromTop (22), juce::Justification::centredLeft);
 
     g.setColour (muted);
@@ -162,6 +175,51 @@ void MZMixSystemAudioProcessorEditor::drawLevelMeter (juce::Graphics& g,
     g.fillRect (fill);
 }
 
+void MZMixSystemAudioProcessorEditor::drawSpectralMeter (
+    juce::Graphics& g,
+    juce::Rectangle<float> area,
+    const mz::SpectralValues& spectrum,
+    const mz::SpectralValues& reductions)
+{
+    const auto cellWidth = area.getWidth() / static_cast<float> (mz::spectralBandCount);
+
+    for (int band = 0; band < mz::spectralBandCount; ++band)
+    {
+        auto cell = area.withX (area.getX() + cellWidth * static_cast<float> (band))
+                        .withWidth (cellWidth)
+                        .reduced (5.0f, 0.0f);
+        auto labelArea = cell.removeFromBottom (22.0f);
+        auto reductionArea = cell.removeFromBottom (17.0f);
+        auto meter = cell.reduced (2.0f, 1.0f);
+
+        g.setColour (panel.brighter (0.08f));
+        g.fillRect (meter);
+        g.setColour (muted);
+        g.drawRect (meter, 1.0f);
+
+        const auto db = juce::Decibels::gainToDecibels (
+            spectrum[static_cast<size_t> (band)], -72.0f);
+        const auto amount = juce::jlimit (0.0f, 1.0f, (db + 66.0f) / 66.0f);
+        auto fill = meter.reduced (3.0f);
+        fill.removeFromTop (fill.getHeight() * (1.0f - amount));
+
+        g.setColour (acid.withAlpha (0.85f));
+        g.fillRect (fill);
+
+        const auto reduction = reductions[static_cast<size_t> (band)];
+        g.setColour (reduction < -0.05f ? orange : muted);
+        g.setFont (juce::Font (juce::FontOptions (10.0f).withStyle ("Bold")));
+        g.drawText (juce::String (reduction, 1) + " dB",
+                    reductionArea.toNearestInt(),
+                    juce::Justification::centred);
+
+        g.setColour (bone);
+        g.drawText (mz::spectralBandName (band),
+                    labelArea.toNearestInt(),
+                    juce::Justification::centred);
+    }
+}
+
 void MZMixSystemAudioProcessorEditor::drawNodePanel (juce::Graphics& g)
 {
     const auto role = processor.currentRole();
@@ -182,7 +240,7 @@ void MZMixSystemAudioProcessorEditor::drawNodePanel (juce::Graphics& g)
     g.setFont (labelFont);
     g.setColour (muted);
 
-    const std::array<std::pair<juce::Component*, const char*>, 7> labels
+    const std::array<std::pair<juce::Component*, const char*>, 8> labels
     {{
         { &roleBox, "ROLE" },
         { &importanceSlider, "IMPORTANCE" },
@@ -190,32 +248,35 @@ void MZMixSystemAudioProcessorEditor::drawNodePanel (juce::Graphics& g)
         { &densityBox, "DENSITY" },
         { &widthBox, "WIDTH POLICY" },
         { &monoBox, "MONO PROTECT" },
-        { &outputTrimSlider, "OUTPUT TRIM" }
+        { &outputTrimSlider, "OUTPUT TRIM" },
+        { &spectralDepthSlider, "SPECTRAL NEGOTIATION" }
     }};
 
     for (const auto& item : labels)
         g.drawText (item.second, item.first->getBounds().translated (0, -20),
                     juce::Justification::centred);
 
-    const auto telemetryY = getHeight() - 130;
+    const auto telemetryY = getHeight() - 180;
     g.setColour (ink);
     g.fillRoundedRectangle (38.0f, static_cast<float> (telemetryY),
-                            static_cast<float> (getWidth() - 76), 88.0f, 6.0f);
+                            static_cast<float> (getWidth() - 76), 138.0f, 6.0f);
 
     g.setColour (bone);
     g.setFont (juce::Font (juce::FontOptions (12.0f).withStyle ("Bold")));
     g.drawText ("INPUT " + dbText (processor.getInputRms()),
-                58, telemetryY + 14, 180, 22, juce::Justification::centredLeft);
-    g.drawText ("AUTO YIELD " + juce::String (processor.getCurrentDuckDb(), 2) + " dB",
-                250, telemetryY + 14, 210, 22, juce::Justification::centredLeft);
+                58, telemetryY + 12, 180, 22, juce::Justification::centredLeft);
+    g.drawText ("LEVEL YIELD " + juce::String (processor.getCurrentDuckDb(), 2) + " dB",
+                250, telemetryY + 12, 210, 22, juce::Justification::centredLeft);
     g.drawText ("WIDTH " + juce::String (processor.getEffectiveWidth() * 100.0f, 0) + "%",
-                472, telemetryY + 14, 150, 22, juce::Justification::centredLeft);
+                472, telemetryY + 12, 150, 22, juce::Justification::centredLeft);
     g.drawText ("MONO < " + juce::String (processor.getEffectiveMonoHz(), 0) + " Hz",
-                632, telemetryY + 14, 180, 22, juce::Justification::centredLeft);
+                632, telemetryY + 12, 180, 22, juce::Justification::centredLeft);
 
-    drawLevelMeter (g, { 58.0f, static_cast<float> (telemetryY + 50),
-                         static_cast<float> (getWidth() - 116), 16.0f },
-                    processor.getInputRms());
+    drawSpectralMeter (g,
+                       { 52.0f, static_cast<float> (telemetryY + 40),
+                         static_cast<float> (getWidth() - 104), 88.0f },
+                       processor.getInputSpectrum(),
+                       processor.getSpectralReductionDb());
 }
 
 void MZMixSystemAudioProcessorEditor::drawConductorPanel (juce::Graphics& g)
@@ -227,7 +288,7 @@ void MZMixSystemAudioProcessorEditor::drawConductorPanel (juce::Graphics& g)
 
     g.setColour (acid);
     g.setFont (juce::Font (juce::FontOptions (22.0f).withStyle ("Bold")));
-    g.drawText ("CONDUCTOR / SHARED PRIORITY FIELD", 48, 132,
+    g.drawText ("CONDUCTOR / SHARED SPECTRAL PRIORITY FIELD", 48, 132,
                 getWidth() - 96, 32, juce::Justification::centredLeft);
 
     g.setColour (muted);
@@ -247,7 +308,7 @@ void MZMixSystemAudioProcessorEditor::drawConductorPanel (juce::Graphics& g)
     g.drawText ("LEVEL", rowLeft + 334, rowY - 28, 110, 22, juce::Justification::centredLeft);
     g.drawText ("WIDTH", rowLeft + 456, rowY - 28, 100, 22, juce::Justification::centredLeft);
     g.drawText ("MONO", rowLeft + 568, rowY - 28, 110, 22, juce::Justification::centredLeft);
-    g.drawText ("YIELD", rowLeft + 690, rowY - 28, 100, 22, juce::Justification::centredLeft);
+    g.drawText ("MAX CARVE", rowLeft + 690, rowY - 28, 110, 22, juce::Justification::centredLeft);
 
     if (snapshots.empty())
     {
@@ -284,7 +345,8 @@ void MZMixSystemAudioProcessorEditor::drawConductorPanel (juce::Graphics& g)
                     juce::Justification::centredLeft);
         g.drawText (juce::String (node.monoHz, 0) + " Hz", rowLeft + 568, rowY, 110, 38,
                     juce::Justification::centredLeft);
-        g.drawText (juce::String (node.duckDb, 2) + " dB", rowLeft + 690, rowY, 110, 38,
+        g.drawText (juce::String (strongestReduction (node.spectralDuckDb), 2) + " dB",
+                    rowLeft + 690, rowY, 110, 38,
                     juce::Justification::centredLeft);
 
         rowY += 46;
@@ -303,7 +365,7 @@ void MZMixSystemAudioProcessorEditor::resized()
 
     auto area = getLocalBounds().reduced (48);
     area.removeFromTop (152);
-    area.removeFromBottom (126);
+    area.removeFromBottom (176);
 
     const auto columnWidth = area.getWidth() / 4;
     const auto topHeight = area.getHeight() / 2;
@@ -317,4 +379,6 @@ void MZMixSystemAudioProcessorEditor::resized()
     widthBox.setBounds (area.getX(), lowerY + 24, columnWidth - 18, 36);
     monoBox.setBounds (area.getX() + columnWidth, lowerY + 24, columnWidth - 18, 36);
     outputTrimSlider.setBounds (area.getX() + columnWidth * 2, lowerY, columnWidth - 18, topHeight - 4);
+    spectralDepthSlider.setBounds (area.getX() + columnWidth * 3, lowerY,
+                                   columnWidth - 18, topHeight - 4);
 }
