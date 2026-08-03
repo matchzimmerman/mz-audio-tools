@@ -47,6 +47,11 @@ public:
     float getEffectiveWidth() const noexcept { return roleDsp.getEffectiveWidth(); }
     float getEffectiveMonoHz() const noexcept { return roleDsp.getEffectiveMonoHz(); }
     float getGlobalStrength() const noexcept;
+    mz::SpectralValues getInputSpectrum() const noexcept { return roleDsp.getInputSpectrum(); }
+    mz::SpectralValues getSpectralReductionDb() const noexcept
+    {
+        return roleDsp.getSpectralReductionDb();
+    }
 
     std::vector<mz::SharedMixRegistry::Snapshot> getNodeSnapshots() const;
 
