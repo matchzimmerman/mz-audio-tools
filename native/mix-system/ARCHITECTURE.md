@@ -18,34 +18,66 @@ The audio thread:
 - never reads files,
 - never performs network or IPC work,
 - communicates through fixed-size atomic slots,
-- smooths all gain changes,
-- performs only bounded loops across at most 32 instances.
+- smooths gain and spectral changes,
+- performs only bounded loops across at most 32 instances and five spectral bands.
 
 The editor may allocate when it creates a CONDUCTOR snapshot because that work runs on the message thread.
 
-## Signal flow
+## v0.2 signal flow
 
 ```text
 TRACK AUDIO
    |
-   +-- input activity analysis
+   +-- five-band input analysis
+   |      SUB / LOW / BODY / PRESENCE / AIR
    |
    +-- read role + importance
    |
    +-- inspect higher-priority active nodes
    |
-   +-- calculate conservative yield request
+   +-- calculate broad safety yield
+   |
+   +-- calculate per-band spectral yield requests
+   |
+   +-- smoothed five-band dynamic bell cuts
    |
    +-- width allocation
    |
    +-- low-side mono protection
    |
-   +-- smoothed gain yield + output trim
+   +-- smoothed safety gain + output trim
    |
-   +-- publish telemetry
+   +-- publish telemetry and active carve values
    |
 OUTPUT
 ```
+
+## Spectral analysis
+
+The analyser uses four stateful one-pole low-pass filters at approximately 100 Hz, 300 Hz, 1.2 kHz, and 5 kHz. Differences between adjacent low-pass outputs form five broad energy estimates without FFT allocation or background work.
+
+The shared bands are represented by broad negotiation filters centered at approximately:
+
+- 60 Hz
+- 180 Hz
+- 700 Hz
+- 2.5 kHz
+- 8 kHz
+
+These are intentionally wide musical territories, not surgical crossover bands.
+
+## Spectral negotiation
+
+Each NODE compares its role and importance with the other active NODE instances. A higher-priority active node produces a request in the bands where it currently has energy. The receiving node scales those requests through a role-specific sensitivity profile.
+
+Examples:
+
+- BODY responds strongly in the body and presence bands when FOCUS becomes active.
+- FOUNDATION responds primarily in sub and low bands when RHYTHM has equal or greater priority.
+- AIR responds most strongly in presence and air.
+- FOCUS remains comparatively protected unless another FOCUS node has higher priority.
+
+Five custom transposed-direct-form biquads apply smoothed bell attenuation. Coefficients are calculated in place and do not allocate on the audio thread.
 
 ## Inter-instance registry
 
@@ -54,31 +86,31 @@ Each instance claims one of 32 process-local slots. A NODE publishes:
 - role,
 - importance,
 - input RMS,
-- current yield in dB,
+- five-band energy,
+- current broad yield in dB,
+- five current spectral carve values,
 - effective width,
 - mono-protection frequency.
 
 The CONDUCTOR publishes a single global automatic-strength value. NODE instances read that value and the telemetry of the other active slots once per audio block.
 
-## Role relationships in v0.1
+## Current boundaries
 
-- BODY and AIR yield most strongly to FOCUS.
-- FOUNDATION yields to RHYTHM when kick/drum priority is equal or higher.
-- RHYTHM yields lightly to a higher-priority FOUNDATION.
-- Lower-importance elements yield conservatively to higher-importance elements.
-- FOCUS is protected from broad automatic movement unless another FOCUS node has higher priority.
+- Communication is process-local; isolated plug-in processes require a future IPC fallback.
+- Five broad bands prioritize stability and musical transparency over surgical resolution.
+- CONDUCTOR observes and controls global strength but does not yet issue per-node overrides.
+- Host track names are not currently requested.
 
-## Planned v0.2
+## Planned v0.3
 
-1. Three-band telemetry: low, presence, and air energy
-2. Frequency-selective dynamic yielding instead of broad gain only
-3. Host track-name discovery where available
-4. Per-node freeze and override controls in CONDUCTOR
-5. Audition-safe delta monitoring
-6. Meter history and collision visualization
-7. Optional named groups for multiple independent ecosystems in one session
+1. Per-node freeze, bypass, and override controls in CONDUCTOR
+2. Audition-safe delta monitoring
+3. Collision history and spectral-pressure visualization
+4. Named groups for multiple independent ecosystems in one session
+5. Host track-name discovery where available
+6. Attack/release character controls and role-specific presets
 
-## Planned v0.3+
+## Planned v0.4+
 
 - Separate FOUNDATION, RHYTHM, BODY, FOCUS, and AIR instruments built on the same protocol
 - External IPC fallback for hosts that isolate instances in separate processes

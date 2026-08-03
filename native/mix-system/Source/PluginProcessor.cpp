@@ -23,6 +23,7 @@ void MZMixSystemAudioProcessor::prepareToPlay (double sampleRate, int samplesPer
 void MZMixSystemAudioProcessor::releaseResources()
 {
     roleDsp.reset();
+    const mz::SpectralValues emptyBands {};
     mz::SharedMixRegistry::instance().publishNode (registrySlot,
                                                    false,
                                                    currentRole(),
@@ -30,7 +31,9 @@ void MZMixSystemAudioProcessor::releaseResources()
                                                    0.0f,
                                                    0.0f,
                                                    1.0f,
-                                                   0.0f);
+                                                   0.0f,
+                                                   emptyBands,
+                                                   emptyBands);
 }
 
 bool MZMixSystemAudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
@@ -74,6 +77,7 @@ void MZMixSystemAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     if (isConductorMode())
     {
         const auto strength = parameters.getRawParameterValue ("globalAuto")->load() * 0.01f;
+        const mz::SpectralValues emptyBands {};
         registry.setGlobalStrength (strength);
         registry.publishNode (registrySlot,
                               false,
@@ -82,13 +86,17 @@ void MZMixSystemAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
                               0.0f,
                               0.0f,
                               1.0f,
-                              0.0f);
+                              0.0f,
+                              emptyBands,
+                              emptyBands);
         return;
     }
 
     const auto role = currentRole();
     const auto importance = currentImportance();
+    const auto spectrum = roleDsp.analyse (buffer);
     const auto yieldRequest = registry.calculateYield (registrySlot, role, importance);
+    const auto spectralYield = registry.calculateSpectralYield (registrySlot, role, importance);
 
     mz::RoleDsp::Settings settings;
     settings.role = role;
@@ -98,6 +106,8 @@ void MZMixSystemAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     settings.density = juce::roundToInt (parameters.getRawParameterValue ("density")->load());
     settings.outputTrimDb = parameters.getRawParameterValue ("outputTrim")->load();
     settings.yieldRequest = yieldRequest;
+    settings.spectralYield = spectralYield;
+    settings.spectralDepth = parameters.getRawParameterValue ("spectralDepth")->load() * 0.01f;
     settings.globalStrength = registry.getGlobalStrength();
 
     roleDsp.process (buffer, settings);
@@ -109,7 +119,9 @@ void MZMixSystemAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
                           rms,
                           roleDsp.getCurrentDuckDb(),
                           roleDsp.getEffectiveWidth(),
-                          roleDsp.getEffectiveMonoHz());
+                          roleDsp.getEffectiveMonoHz(),
+                          spectrum,
+                          roleDsp.getSpectralReductionDb());
 }
 
 juce::AudioProcessorEditor* MZMixSystemAudioProcessor::createEditor()
@@ -161,6 +173,11 @@ juce::AudioProcessorValueTreeState::ParameterLayout MZMixSystemAudioProcessor::c
     layout.push_back (std::make_unique<juce::AudioParameterChoice> (
         juce::ParameterID { "density", 1 }, "Density",
         juce::StringArray { "SPARSE", "NORMAL", "FULL" }, 1));
+
+    layout.push_back (std::make_unique<juce::AudioParameterFloat> (
+        juce::ParameterID { "spectralDepth", 1 }, "Spectral Negotiation",
+        juce::NormalisableRange<float> { 0.0f, 100.0f, 1.0f }, 70.0f,
+        juce::AudioParameterFloatAttributes().withLabel ("%")));
 
     layout.push_back (std::make_unique<juce::AudioParameterFloat> (
         juce::ParameterID { "outputTrim", 1 }, "Output Trim",
