@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#050505" />
+<title>MZ Spectral Particle Lab — v1</title>
+<style>
+  :root{
+    --bg:#050505;
+    --panel:#111;
+    --ink:#f2ff00;
+    --muted:#a7ad79;
+    --line:#34381a;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--ink);font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace}
+  body{display:grid;grid-template-rows:auto 1fr;min-height:100svh}
+  header{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:8px max(8px,env(safe-area-inset-right)) 8px max(8px,env(safe-area-inset-left));border-bottom:1px solid var(--line);background:#090909;z-index:2}
+  .brand{font-weight:900;letter-spacing:.08em;margin-right:auto;white-space:nowrap}
+  button,label.file{appearance:none;border:1px solid var(--ink);background:#0b0b0b;color:var(--ink);padding:8px 10px;font:inherit;font-weight:800;cursor:pointer;border-radius:0;touch-action:manipulation}
+  button:hover,label.file:hover,button.active{background:var(--ink);color:#050505}
+  input[type=file]{display:none}
+  .control{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:11px}
+  input[type=range]{width:96px;accent-color:var(--ink)}
+  #stage{position:relative;min-height:0;overflow:hidden}
+  canvas{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated;image-rendering:crisp-edges}
+  #hud{position:absolute;left:max(10px,env(safe-area-inset-left));bottom:max(10px,env(safe-area-inset-bottom));display:grid;grid-template-columns:auto 100px;gap:3px 8px;font-size:10px;pointer-events:none;text-shadow:0 1px #000}
+  .meter{height:7px;border:1px solid var(--line);background:#090909}
+  .fill{height:100%;width:0;background:var(--ink)}
+  #status{position:absolute;right:max(10px,env(safe-area-inset-right));bottom:max(10px,env(safe-area-inset-bottom));color:var(--muted);font-size:10px;max-width:45vw;text-align:right;pointer-events:none}
+  #start{display:none;position:absolute;inset:0;place-items:center;background:rgba(5,5,5,.5);z-index:3}
+  #start button{font-size:15px;padding:14px 18px}
+  @media(max-width:760px){
+    header{padding-top:max(6px,env(safe-area-inset-top))}
+    .brand{width:100%;margin-bottom:2px}
+    .control{display:none}
+    button,label.file{padding:9px 10px;font-size:12px}
+    #status{max-width:55vw}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">MZ SPECTRAL PARTICLE LAB / 01</div>
+  <label class="file">LOAD AUDIO<input id="file" type="file" accept="audio/*"></label>
+  <button id="mic">MIC</button>
+  <button id="demo" class="active">DEMO SIGNAL</button>
+  <button id="reset">RESEED</button>
+  <button id="fullscreen">FULLSCREEN</button>
+  <div class="control">PARTICLES <input id="count" type="range" min="250" max="2200" step="50" value="950"></div>
+  <div class="control">SENSITIVITY <input id="sensitivity" type="range" min="0.5" max="3.5" step="0.05" value="1.65"></div>
+  <div class="control">TRAIL <input id="trail" type="range" min="0.02" max="0.35" step="0.01" value="0.11"></div>
+</header>
+<div id="stage">
+  <canvas id="view"></canvas>
+  <div id="hud"></div>
+  <div id="status">DEMO MODE · LOAD A TRACK OR ENABLE MIC</div>
+  <div id="start"><button>START VISUALIZER</button></div>
+</div>
+<audio id="audio" crossorigin="anonymous"></audio>
+<script>
+(() => {
+  'use strict';
+
+  const view = document.getElementById('view');
+  const vctx = view.getContext('2d', { alpha:false });
+  const low = document.createElement('canvas');
+  const ctx = low.getContext('2d', { alpha:false });
+  const audioEl = document.getElementById('audio');
+  const fileInput = document.getElementById('file');
+  const micBtn = document.getElementById('mic');
+  const demoBtn = document.getElementById('demo');
+  const resetBtn = document.getElementById('reset');
+  const fullBtn = document.getElementById('fullscreen');
+  const countSlider = document.getElementById('count');
+  const sensitivitySlider = document.getElementById('sensitivity');
+  const trailSlider = document.getElementById('trail');
+  const status = document.getElementById('status');
+  const hud = document.getElementById('hud');
+  const start = document.getElementById('start');
+
+  const bandDefs = [
+    {name:'SUB',      min:20,   max:90,    behavior:'pressure'},
+    {name:'BASS',     min:90,   max:250,   behavior:'orbit'},
+    {name:'LOW MID',  min:250,  max:900,   behavior:'cohesion'},
+    {name:'HIGH MID', min:900,  max:4000,  behavior:'turbulence'},
+    {name:'AIR',      min:4000, max:16000, behavior:'sparks'}
+  ];
+
+  const palettes = [
+    ['#f2ff00','#ff3b00','#10f7c5','#9a4dff','#fff7dd'],
+    ['#fff200','#ff005d','#00d9ff','#6dff00','#ffffff'],
+    ['#ff6b00','#ffe600','#ff36e4','#00ff9d','#e8f1ff'],
+    ['#eaff00','#00ffc8','#ff206e','#7a5cff','#fff4d6']
+  ];
+
+  let palette = palettes[0];
+  let W=320,H=180,DPR=1;
+  let particles=[];
+  let seed=Math.random()*9999;
+  let last=performance.now();
+  let frame=0;
+  let demoMode=true;
+  let sourceNode=null;
+  let micStream=null;
+  let audioCtx=null;
+  let analyser=null;
+  let freqData=null;
+  let timeData=null;
+  let previousEnergy=0;
+  let transient=0;
+  let bands=[0,0,0,0,0];
+  let smoothed=[0,0,0,0,0];
+  let running=true;
+
+  function resize(){
+    const r=view.getBoundingClientRect();
+    DPR=Math.min(devicePixelRatio||1,2);
+    view.width=Math.max(1,Math.floor(r.width*DPR));
+    view.height=Math.max(1,Math.floor(r.height*DPR));
+    const aspect=r.width/Math.max(1,r.height);
+    H=180;
+    W=Math.max(240,Math.round(H*aspect));
+    low.width=W; low.height=H;
+    vctx.imageSmoothingEnabled=false;
+    reseed(false);
+  }
+
+  function rand(n=1){
+    seed += 0.731;
+    const x=Math.sin(seed*12.9898)*43758.5453;
+    return (x-Math.floor(x))*n;
+  }
+
+  function newParticle(i){
+    const band=i%5;
+    return {
+      x:rand(W), y:rand(H),
+      px:0, py:0,
+      vx:(rand()-0.5)*0.45,
+      vy:(rand()-0.5)*0.45,
+      band,
+      size:band===0?2:band===4?0.7:1.2,
+      life:rand(1),
+      phase:rand(Math.PI*2),
+      color:palette[band%palette.length]
+    };
+  }
+
+  function reseed(changePalette=true){
+    if(changePalette) palette=palettes[Math.floor(Math.random()*palettes.length)];
+    seed=Math.random()*9999;
+    const target=Number(countSlider.value);
+    particles=Array.from({length:target},(_,i)=>newParticle(i));
+    ctx.fillStyle='#050505';ctx.fillRect(0,0,W,H);
+  }
+
+  function reconcileCount(){
+    const target=Number(countSlider.value);
+    while(particles.length<target) particles.push(newParticle(particles.length));
+    if(particles.length>target) particles.length=target;
+  }
+
+  function setupAudio(){
+    if(audioCtx) return;
+    audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+    analyser=audioCtx.createAnalyser();
+    analyser.fftSize=2048;
+    analyser.smoothingTimeConstant=0.68;
+    freqData=new Uint8Array(analyser.frequencyBinCount);
+    timeData=new Uint8Array(analyser.fftSize);
+    analyser.connect(audioCtx.destination);
+  }
+
+  function stopInput(){
+    try{sourceNode&&sourceNode.disconnect();}catch(e){}
+    sourceNode=null;
+    if(micStream){micStream.getTracks().forEach(t=>t.stop());micStream=null;}
+    audioEl.pause();
+  }
+
+  async function useFile(file){
+    setupAudio();
+    await audioCtx.resume();
+    stopInput();
+    audioEl.src=URL.createObjectURL(file);
+    audioEl.loop=true;
+    sourceNode=audioCtx.createMediaElementSource(audioEl);
+    sourceNode.connect(analyser);
+    await audioEl.play();
+    demoMode=false;
+    demoBtn.classList.remove('active');
+    micBtn.classList.remove('active');
+    status.textContent='FILE · '+file.name.toUpperCase();
+  }
+
+  async function useMic(){
+    setupAudio();
+    await audioCtx.resume();
+    stopInput();
+    micStream=await navigator.mediaDevices.getUserMedia({audio:true});
+    sourceNode=audioCtx.createMediaStreamSource(micStream);
+    sourceNode.connect(analyser);
+    demoMode=false;
+    micBtn.classList.add('active');
+    demoBtn.classList.remove('active');
+    status.textContent='LIVE MICROPHONE INPUT';
+  }
+
+  function hzToBin(hz){
+    if(!audioCtx||!analyser) return 0;
+    return Math.max(0,Math.min(freqData.length-1,Math.floor(hz/(audioCtx.sampleRate/2)*freqData.length)));
+  }
+
+  function sampleAudio(t){
+    const sensitivity=Number(sensitivitySlider.value);
+    if(demoMode){
+      const beat=(t*2.05)%1;
+      const kick=Math.exp(-beat*15);
+      const off=(t*4.1+0.5)%1;
+      const hat=Math.exp(-off*28);
+      const slow=(Math.sin(t*0.37)+1)*0.5;
+      bands=[
+        Math.min(1,0.14+kick*0.95+slow*0.1),
+        Math.min(1,0.22+Math.max(0,Math.sin(t*3.1))*0.45+kick*0.32),
+        0.24+(Math.sin(t*1.3+1.2)+1)*0.17,
+        0.18+(Math.sin(t*5.7)*Math.sin(t*0.61)+1)*0.2,
+        Math.min(1,0.08+hat*0.9)
+      ];
+      transient=Math.max(transient*0.84,kick*0.9,hat*0.35);
+    } else if(analyser){
+      analyser.getByteFrequencyData(freqData);
+      analyser.getByteTimeDomainData(timeData);
+      bands=bandDefs.map(def=>{
+        const a=hzToBin(def.min), b=Math.max(a+1,hzToBin(def.max));
+        let sum=0, weight=0;
+        for(let i=a;i<=b;i++){
+          const w=1+(i-a)/Math.max(1,b-a)*0.25;
+          sum+=(freqData[i]/255)*w; weight+=w;
+        }
+        return Math.min(1,(sum/weight)*sensitivity);
+      });
+      let rms=0;
+      for(let i=0;i<timeData.length;i++){
+        const v=(timeData[i]-128)/128; rms+=v*v;
+      }
+      rms=Math.sqrt(rms/timeData.length);
+      const delta=Math.max(0,rms-previousEnergy*0.86);
+      previousEnergy=rms;
+      transient=Math.max(transient*0.82,Math.min(1,delta*7));
+    }
+    for(let i=0;i<5;i++) smoothed[i]+= (bands[i]-smoothed[i])*(bands[i]>smoothed[i]?0.24:0.07);
+  }
+
+  function hashNoise(x,y,t){
+    return Math.sin(x*0.071+y*0.113+t*0.8)+Math.sin(x*0.023-y*0.089-t*0.53);
+  }
+
+  function updateParticle(p,t,dt){
+    const e=smoothed[p.band];
+    const cx=W*0.5 + Math.sin(t*0.31)*W*0.12;
+    const cy=H*0.5 + Math.cos(t*0.27)*H*0.12;
+    const dx=p.x-cx, dy=p.y-cy;
+    const dist=Math.sqrt(dx*dx+dy*dy)+0.001;
+    const nx=dx/dist, ny=dy/dist;
+
+    const pressure=(smoothed[0]-0.28)*0.045 + transient*0.075;
+    p.vx += nx*pressure;
+    p.vy += ny*pressure;
+
+    if(p.band===0){
+      p.vx += -nx*(0.005+e*0.018);
+      p.vy += 0.003 + Math.sin(t+p.phase)*0.004;
+    } else if(p.band===1){
+      p.vx += -ny*(0.008+e*0.038);
+      p.vy +=  nx*(0.008+e*0.038);
+      p.vx += -nx*0.003;
+      p.vy += -ny*0.003;
+    } else if(p.band===2){
+      const tx=cx+Math.sin(p.phase+t*0.4)*W*0.28;
+      const ty=cy+Math.cos(p.phase*1.7-t*0.32)*H*0.28;
+      p.vx += (tx-p.x)*(0.00018+e*0.00055);
+      p.vy += (ty-p.y)*(0.00018+e*0.00055);
+    } else if(p.band===3){
+      const n=hashNoise(p.x,p.y,t+p.phase);
+      p.vx += Math.cos(n*Math.PI)*(0.006+e*0.05);
+      p.vy += Math.sin(n*Math.PI)*(0.006+e*0.05);
+    } else {
+      p.vx += (0.012+e*0.11)*(0.4+Math.sin(p.phase)*0.6);
+      p.vy += Math.sin(t*4+p.phase+p.x*0.03)*(0.008+e*0.045);
+      if(Math.random()<e*0.018){
+        p.x=rand(W); p.y=rand(H); p.vx=(rand()-0.2)*1.8; p.vy=(rand()-0.5)*1.2;
+      }
+    }
+
+    p.vx += Math.sin(t*0.7+p.y*0.035)*(smoothed[1]*0.012 + smoothed[3]*0.009);
+    p.vy += Math.cos(t*0.43+p.x*0.028)*(smoothed[2]*0.012);
+
+    const drag=0.978-(p.band===4?0.008:0);
+    p.vx*=drag; p.vy*=drag;
+    const max=0.7+p.band*0.22+e*1.8;
+    const sp=Math.sqrt(p.vx*p.vx+p.vy*p.vy);
+    if(sp>max){p.vx=p.vx/sp*max;p.vy=p.vy/sp*max;}
+
+    p.px=p.x;p.py=p.y;
+    p.x+=p.vx*dt*60;
+    p.y+=p.vy*dt*60;
+
+    if(p.x<-4)p.x=W+4;if(p.x>W+4)p.x=-4;
+    if(p.y<-4)p.y=H+4;if(p.y>H+4)p.y=-4;
+  }
+
+  function drawParticle(p){
+    const e=smoothed[p.band];
+    ctx.strokeStyle=p.color;
+    ctx.fillStyle=p.color;
+    ctx.globalAlpha=0.22+e*0.72;
+    if(p.band===0){
+      const s=1.3+e*2.2;
+      ctx.fillRect(Math.round(p.x-s/2),Math.round(p.y-s/2),Math.max(1,Math.round(s)),Math.max(1,Math.round(s)));
+    } else if(p.band===4){
+      ctx.beginPath();ctx.moveTo(p.px,p.py);ctx.lineTo(p.x,p.y);ctx.stroke();
+    } else {
+      ctx.beginPath();ctx.moveTo(p.px,p.py);ctx.lineTo(p.x,p.y);ctx.stroke();
+      if(p.band===2 && e>0.5) ctx.fillRect(Math.round(p.x),Math.round(p.y),1,1);
+    }
+    ctx.globalAlpha=1;
+  }
+
+  function drawDither(t){
+    const e=(smoothed[2]+smoothed[3])*0.5;
+    ctx.globalAlpha=0.08+e*0.08;
+    ctx.fillStyle=palette[(frame>>3)%palette.length];
+    const step=6;
+    for(let y=(frame%step);y<H;y+=step){
+      for(let x=((y/step+frame)%2)*3;x<W;x+=step){
+        const n=hashNoise(x,y,t);
+        if(n>1.15-e*0.9) ctx.fillRect(x,y,1,1);
+      }
+    }
+    ctx.globalAlpha=1;
+  }
+
+  function updateHud(){
+    hud.innerHTML=bandDefs.map((b,i)=>`<span>${b.name}</span><span class="meter"><span class="fill" style="display:block;width:${Math.round(smoothed[i]*100)}%"></span></span>`).join('');
+  }
+
+  function animate(now){
+    if(!running) return;
+    const dt=Math.min(0.033,(now-last)/1000||0.016); last=now;
+    const t=now/1000;
+    frame++;
+    reconcileCount();
+    sampleAudio(t);
+
+    const fade=Number(trailSlider.value);
+    ctx.fillStyle=`rgba(5,5,5,${fade})`;
+    ctx.fillRect(0,0,W,H);
+
+    ctx.lineWidth=1;
+    for(const p of particles){updateParticle(p,t,dt);drawParticle(p);}
+    drawDither(t);
+
+    vctx.fillStyle='#050505';vctx.fillRect(0,0,view.width,view.height);
+    vctx.imageSmoothingEnabled=false;
+    vctx.drawImage(low,0,0,view.width,view.height);
+
+    if(frame%3===0) updateHud();
+    requestAnimationFrame(animate);
+  }
+
+  fileInput.addEventListener('change',e=>{const f=e.target.files?.[0];if(f)useFile(f).catch(err=>status.textContent='AUDIO ERROR · '+err.message);});
+  micBtn.addEventListener('click',()=>useMic().catch(err=>status.textContent='MIC ERROR · '+err.message));
+  demoBtn.addEventListener('click',()=>{
+    stopInput(); demoMode=true; demoBtn.classList.add('active'); micBtn.classList.remove('active');
+    status.textContent='DEMO MODE · SYNTHETIC SPECTRAL SIGNAL';
+  });
+  resetBtn.addEventListener('click',()=>reseed(true));
+  countSlider.addEventListener('input',reconcileCount);
+  fullBtn.addEventListener('click',()=>document.documentElement.requestFullscreen?.());
+  window.addEventListener('resize',resize,{passive:true});
+  document.addEventListener('visibilitychange',()=>{
+    if(document.hidden){running=false;}
+    else if(!running){running=true;last=performance.now();requestAnimationFrame(animate);}
+  });
+  start.addEventListener('click',()=>{start.style.display='none';running=true;last=performance.now();requestAnimationFrame(animate);});
+
+  try{
+    resize(); reseed(false); requestAnimationFrame(animate);
+  }catch(err){
+    status.textContent='VISUAL ERROR · '+err.message;
+    start.style.display='grid';
+  }
+})();
+</script>
+</body>
+</html>
