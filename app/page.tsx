@@ -33,6 +33,14 @@ const UNITS = [
     description: "Toggle between East Coast subtractive control and West Coast complex timbre, touch voltage, and low-pass gates.",
     href: "/coasts",
   },
+  {
+    id: "05",
+    plate: "MZ–05",
+    name: "SPECTRAL PARTICLES",
+    tagline: "FREQUENCY PHYSICS VISUALIZER",
+    description: "Load a track or use the microphone to drive five interacting particle behaviors across the audible spectrum.",
+    href: "/spectral-particles/index.html",
+  },
 ];
 
 export default function IndexPage() {
@@ -61,7 +69,7 @@ export default function IndexPage() {
 
       <footer className="mz-foot">
         <span>MZ AUDIO TOOLS</span>
-        <span>4 INSTRUMENTS / WEB AUDIO / NO SAMPLES</span>
+        <span>5 INSTRUMENTS / WEB AUDIO / BROWSER NATIVE</span>
         <span>FIELD STATION INDEX</span>
       </footer>
     </main>
@@ -69,15 +77,15 @@ export default function IndexPage() {
 }
 
 const STYLES = `
-.mz-index{ width:min(100%, 1200px); min-height:100vh; margin:0 auto; padding:24px 30px 30px; box-sizing:border-box; }
+.mz-index{ width:min(100%, 1440px); min-height:100vh; margin:0 auto; padding:24px 30px 30px; box-sizing:border-box; }
 .mz-index *{ box-sizing:border-box; }
 
 .mz-masthead{ border-top:2px solid var(--ink); border-bottom:2px solid var(--ink); padding:14px 0 16px; margin-bottom:22px; }
 .mz-masthead h1{ margin:0; font-size:clamp(40px,7vw,84px); font-weight:900; letter-spacing:-.06em; line-height:.8; }
 .mz-masthead p{ margin:8px 0 0; font:700 10px/1 monospace; letter-spacing:.16em; color:var(--muted); }
 
-.mz-units{ display:grid; grid-template-columns:repeat(4,1fr); border-top:1.5px solid var(--ink); border-bottom:1.5px solid var(--ink); }
-.mz-unit{ display:flex; flex-direction:column; gap:8px; padding:18px 20px 20px; border-right:1px solid var(--ink);
+.mz-units{ display:grid; grid-template-columns:repeat(5,1fr); border-top:1.5px solid var(--ink); border-bottom:1.5px solid var(--ink); }
+.mz-unit{ display:flex; flex-direction:column; gap:8px; min-width:0; padding:18px 18px 20px; border-right:1px solid var(--ink);
   text-decoration:none; color:var(--ink); transition:background .14s ease; }
 .mz-unit:last-child{ border-right:0; }
 .mz-unit:hover, .mz-unit:focus-visible{ background:var(--paper-light); }
@@ -85,7 +93,7 @@ const STYLES = `
 .mz-unit-head{ display:flex; align-items:center; gap:8px; }
 .mz-index-box{ width:24px; height:24px; display:grid; place-items:center; border:1px solid var(--ink); background:var(--acid); font:800 9px/1 monospace; }
 .mz-unit-plate{ font:700 9px/1 monospace; letter-spacing:.08em; color:var(--muted); }
-.mz-unit h2{ margin:2px 0 0; font-size:26px; font-weight:900; letter-spacing:-.03em; line-height:1; }
+.mz-unit h2{ margin:2px 0 0; font-size:clamp(20px,2vw,26px); font-weight:900; letter-spacing:-.03em; line-height:1; overflow-wrap:anywhere; }
 .mz-unit-tagline{ margin:0; font:700 8px/1 monospace; letter-spacing:.1em; color:var(--muted); }
 .mz-unit-desc{ margin:4px 0 0; font-size:12.5px; line-height:1.5; }
 .mz-unit-open{ margin-top:auto; padding-top:10px; font:800 9px/1 monospace; letter-spacing:.1em; }
@@ -94,10 +102,12 @@ const STYLES = `
 
 @media(max-width:1100px){
   .mz-units{ grid-template-columns:repeat(2,1fr); }
-  .mz-unit:nth-child(2){ border-right:0; }
-  .mz-unit:nth-child(-n+2){ border-bottom:1px solid var(--ink); }
+  .mz-unit{ border-bottom:1px solid var(--ink); }
+  .mz-unit:nth-child(2n){ border-right:0; }
+  .mz-unit:last-child{ border-bottom:0; }
 }
 @media(max-width:650px){
+  .mz-index{ padding:16px; }
   .mz-units{ grid-template-columns:1fr; }
   .mz-unit{ border-right:0; border-bottom:1px solid var(--ink); }
   .mz-unit:last-child{ border-bottom:0; }
