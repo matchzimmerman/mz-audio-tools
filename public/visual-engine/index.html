@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#050505" />
+<title>MZ Visual Engine — Multi-Send Prototype</title>
+<link rel="stylesheet" href="./style.css" />
+
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="brand">
+      <strong>MZ VISUAL ENGINE / PROTOTYPE 01</strong>
+      <span>MULTI-SEND ORGANIC BIT PERFORMANCE + CAPTURE SYSTEM</span>
+    </div>
+    <button id="demoBtn" class="active">DEMO</button>
+    <button id="micBtn">LIVE INPUT</button>
+    <div class="header-control">SCENE
+      <select id="sceneSelect">
+        <option value="particles">SPECTRAL PARTICLES</option>
+        <option value="field">ORGANIC FIELD</option>
+        <option value="dither">DITHER GRID</option>
+        <option value="terrain">TOPOGRAPHIC</option>
+        <option value="phantom">PHANTOM GRID</option>
+      </select>
+    </div>
+    <div class="header-control">SENS <input id="sensitivity" type="range" min="0.5" max="3.5" step="0.05" value="1.55"></div>
+    <button id="reseedBtn">RESEED</button>
+    <button id="fullBtn">FULLSCREEN</button>
+  </header>
+
+  <div id="workspace">
+    <aside id="rack">
+      <div class="rack-title"><strong>MZ VISUAL SEND RACK</strong><span>LOAD STEMS / ASSIGN ROLES</span></div>
+      <div id="sends"></div>
+    </aside>
+
+    <main id="stage">
+      <canvas id="view"></canvas>
+      <div id="stageHud">
+        <div class="hud-block"><strong id="sceneName">SPECTRAL PARTICLES</strong><br><span id="sourceLabel">DEMO SIGNAL / MULTI-SEND SIMULATION</span></div>
+        <div id="signalHud" class="hud-block"></div>
+      </div>
+      <div id="notice">DEMO MODE IS RUNNING.<br>LOAD AUDIO STEMS INTO THE SEND RACK, OR SELECT LIVE INPUT.</div>
+      <div id="recordFlag">● CAPTURING WEBM</div>
+    </main>
+  </div>
+
+  <footer>
+    <div class="transport-group">
+      <button id="playBtn">PLAY</button>
+      <button id="stopBtn">STOP</button>
+      <button id="loopBtn" class="active">LOOP</button>
+    </div>
+    <span id="time">00:00 / --:--</span>
+    <div class="transport-group">
+      <button id="recordBtn">START CAPTURE</button>
+      <button id="blackoutBtn">BLACKOUT</button>
+      <button id="freezeBtn">FREEZE</button>
+    </div>
+    <span class="footer-note">REAL-TIME WEB PROTOTYPE · VST3/AU SENDS ARE SIMULATED BY STEM LANES</span>
+  </footer>
+</div>
+<script src="./app.js"></script>
+
+</body>
+</html>
