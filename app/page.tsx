@@ -41,6 +41,14 @@ const UNITS = [
     description: "Load a track or use the microphone to drive five interacting particle behaviors across the audible spectrum.",
     href: "/spectral-particles/index.html",
   },
+  {
+    id: "06",
+    plate: "MZ–06",
+    name: "VISUAL ENGINE",
+    tagline: "MULTI-SEND ORGANIC BIT SYSTEM",
+    description: "Load separate stems, assign each track a visual role, perform full-screen scenes, and capture audio-reactive video.",
+    href: "/visual-engine/index.html",
+  },
 ];
 
 export default function IndexPage() {
@@ -69,7 +77,7 @@ export default function IndexPage() {
 
       <footer className="mz-foot">
         <span>MZ AUDIO TOOLS</span>
-        <span>5 INSTRUMENTS / WEB AUDIO / BROWSER NATIVE</span>
+        <span>6 INSTRUMENTS / WEB AUDIO / BROWSER NATIVE</span>
         <span>FIELD STATION INDEX</span>
       </footer>
     </main>
@@ -84,10 +92,11 @@ const STYLES = `
 .mz-masthead h1{ margin:0; font-size:clamp(40px,7vw,84px); font-weight:900; letter-spacing:-.06em; line-height:.8; }
 .mz-masthead p{ margin:8px 0 0; font:700 10px/1 monospace; letter-spacing:.16em; color:var(--muted); }
 
-.mz-units{ display:grid; grid-template-columns:repeat(5,1fr); border-top:1.5px solid var(--ink); border-bottom:1.5px solid var(--ink); }
+.mz-units{ display:grid; grid-template-columns:repeat(3,1fr); border-top:1.5px solid var(--ink); border-bottom:1.5px solid var(--ink); }
 .mz-unit{ display:flex; flex-direction:column; gap:8px; min-width:0; padding:18px 18px 20px; border-right:1px solid var(--ink);
   text-decoration:none; color:var(--ink); transition:background .14s ease; }
-.mz-unit:last-child{ border-right:0; }
+.mz-unit:nth-child(3n){ border-right:0; }
+.mz-unit:nth-child(-n+3){ border-bottom:1px solid var(--ink); }
 .mz-unit:hover, .mz-unit:focus-visible{ background:var(--paper-light); }
 .mz-unit:focus-visible{ outline:3px solid var(--acid); outline-offset:-3px; }
 .mz-unit-head{ display:flex; align-items:center; gap:8px; }
@@ -102,14 +111,15 @@ const STYLES = `
 
 @media(max-width:1100px){
   .mz-units{ grid-template-columns:repeat(2,1fr); }
+  .mz-unit:nth-child(3n){ border-right:1px solid var(--ink); }
   .mz-unit{ border-bottom:1px solid var(--ink); }
   .mz-unit:nth-child(2n){ border-right:0; }
-  .mz-unit:last-child{ border-bottom:0; }
+  .mz-unit:nth-last-child(-n+2){ border-bottom:0; }
 }
 @media(max-width:650px){
   .mz-index{ padding:16px; }
   .mz-units{ grid-template-columns:1fr; }
-  .mz-unit{ border-right:0; border-bottom:1px solid var(--ink); }
+  .mz-unit, .mz-unit:nth-child(3n){ border-right:0; border-bottom:1px solid var(--ink); }
   .mz-unit:last-child{ border-bottom:0; }
 }
 @media(prefers-reduced-motion:reduce){
