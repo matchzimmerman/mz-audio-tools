@@ -30,9 +30,11 @@ test("server-renders the field station index", async () => {
   assert.match(body, />MAGPIE</);
   assert.match(body, />SERIAL</);
   assert.match(body, />ER·D</);
+  assert.match(body, />FIELD CHORUS</);
   assert.match(body, /href="\/magpie"/);
   assert.match(body, /href="\/serial"/);
   assert.match(body, /href="\/erd"/);
+  assert.match(body, /href="\/field-chorus"/);
 });
 
 test("server-renders Magpie at its own route", async () => {
@@ -65,14 +67,26 @@ test("server-renders Er·d at its own route", async () => {
   assert.match(body, /MZ–03/);
 });
 
+test("server-renders Field Chorus at its own route", async () => {
+  const body = await html("/field-chorus");
+  assert.match(body, /<title>Field Chorus — Mid-Atlantic Ecology Mixer<\/title>/i);
+  assert.match(body, />FIELD CHORUS</);
+  assert.match(body, /MID-ATLANTIC ECOLOGY MIXER/);
+  assert.match(body, /AUTO ECOLOGY/);
+  assert.match(body, /ECOLOGY MIXER/);
+  assert.match(body, /MZ–07/);
+});
+
 test("keeps every instrument state tied to real interaction and audio", async () => {
-  const [magpiePage, magpieEngine, serialPage, serialEngine, erdPage, erdEngine, globalsCss] = await Promise.all([
+  const [magpiePage, magpieEngine, serialPage, serialEngine, erdPage, erdEngine, fieldPage, fieldEngine, globalsCss] = await Promise.all([
     readFile(new URL("../app/magpie/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/magpie-engine.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/serial/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/serial-engine.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/erd/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/erd-engine.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/field-chorus/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/field-chorus-engine.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
     access(new URL("../public/serial-og.png", import.meta.url)),
   ]);
@@ -96,6 +110,14 @@ test("keeps every instrument state tied to real interaction and audio", async ()
   assert.match(erdEngine, /createOscillator\(\)/);
   assert.match(erdEngine, /createBiquadFilter\(\)/);
   assert.match(erdPage, /role="slider"/);
+
+  assert.match(fieldEngine, /createOscillator\(\)/);
+  assert.match(fieldEngine, /createAnalyser\(\)/);
+  assert.match(fieldEngine, /createDynamicsCompressor\(\)/);
+  assert.match(fieldEngine, /ecologicalActivity/);
+  assert.match(fieldPage, /AUTO ECOLOGY/);
+  assert.match(fieldPage, /type="range"/);
+  assert.match(fieldPage, /aria-live="polite"/);
 
   assert.match(globalsCss, /:focus-visible/);
   assert.match(globalsCss, /prefers-reduced-motion/);
