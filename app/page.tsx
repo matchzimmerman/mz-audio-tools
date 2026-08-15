@@ -49,6 +49,14 @@ const UNITS = [
     description: "Load separate stems, assign each track a visual role, perform full-screen scenes, and capture audio-reactive video.",
     href: "/visual-engine/index.html",
   },
+  {
+    id: "07",
+    plate: "MZ–07",
+    name: "FIELD CHORUS",
+    tagline: "MID-ATLANTIC ECOLOGY MIXER",
+    description: "Build a living MD / PA / DE sound field by season, hour, habitat, and species — then let the ecology run itself.",
+    href: "/field-chorus",
+  },
 ];
 
 export default function IndexPage() {
@@ -77,7 +85,7 @@ export default function IndexPage() {
 
       <footer className="mz-foot">
         <span>MZ AUDIO TOOLS</span>
-        <span>6 INSTRUMENTS / WEB AUDIO / BROWSER NATIVE</span>
+        <span>7 INSTRUMENTS / WEB AUDIO / BROWSER NATIVE</span>
         <span>FIELD STATION INDEX</span>
       </footer>
     </main>
@@ -93,10 +101,10 @@ const STYLES = `
 .mz-masthead p{ margin:8px 0 0; font:700 10px/1 monospace; letter-spacing:.16em; color:var(--muted); }
 
 .mz-units{ display:grid; grid-template-columns:repeat(3,1fr); border-top:1.5px solid var(--ink); border-bottom:1.5px solid var(--ink); }
-.mz-unit{ display:flex; flex-direction:column; gap:8px; min-width:0; padding:18px 18px 20px; border-right:1px solid var(--ink);
+.mz-unit{ display:flex; flex-direction:column; gap:8px; min-width:0; padding:18px 18px 20px; border-right:1px solid var(--ink); border-bottom:1px solid var(--ink);
   text-decoration:none; color:var(--ink); transition:background .14s ease; }
 .mz-unit:nth-child(3n){ border-right:0; }
-.mz-unit:nth-child(-n+3){ border-bottom:1px solid var(--ink); }
+.mz-unit:last-child{ border-right:0; border-bottom:0; }
 .mz-unit:hover, .mz-unit:focus-visible{ background:var(--paper-light); }
 .mz-unit:focus-visible{ outline:3px solid var(--acid); outline-offset:-3px; }
 .mz-unit-head{ display:flex; align-items:center; gap:8px; }
@@ -112,9 +120,8 @@ const STYLES = `
 @media(max-width:1100px){
   .mz-units{ grid-template-columns:repeat(2,1fr); }
   .mz-unit:nth-child(3n){ border-right:1px solid var(--ink); }
-  .mz-unit{ border-bottom:1px solid var(--ink); }
   .mz-unit:nth-child(2n){ border-right:0; }
-  .mz-unit:nth-last-child(-n+2){ border-bottom:0; }
+  .mz-unit:last-child{ border-right:0; border-bottom:0; }
 }
 @media(max-width:650px){
   .mz-index{ padding:16px; }
