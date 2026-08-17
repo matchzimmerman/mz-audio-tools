@@ -57,6 +57,14 @@ const UNITS = [
     description: "Build a living MD / PA / DE sound field by season, hour, habitat, and species — then let the ecology run itself.",
     href: "/field-chorus",
   },
+  {
+    id: "08",
+    plate: "MZ–08",
+    name: "EMERGENT FIELD",
+    tagline: "GENERATIVE MIX-AWARE INSTRUMENT",
+    description: "Six coupled streams compose, negotiate spectral space, adapt event density, and continually redistribute themselves across the stereo field.",
+    href: "/emergent-field",
+  },
 ];
 
 export default function IndexPage() {
@@ -85,7 +93,7 @@ export default function IndexPage() {
 
       <footer className="mz-foot">
         <span>MZ AUDIO TOOLS</span>
-        <span>7 INSTRUMENTS / WEB AUDIO / BROWSER NATIVE</span>
+        <span>8 INSTRUMENTS / WEB AUDIO / BROWSER NATIVE</span>
         <span>FIELD STATION INDEX</span>
       </footer>
     </main>
@@ -104,7 +112,7 @@ const STYLES = `
 .mz-unit{ display:flex; flex-direction:column; gap:8px; min-width:0; padding:18px 18px 20px; border-right:1px solid var(--ink); border-bottom:1px solid var(--ink);
   text-decoration:none; color:var(--ink); transition:background .14s ease; }
 .mz-unit:nth-child(3n){ border-right:0; }
-.mz-unit:last-child{ border-right:0; border-bottom:0; }
+.mz-unit:last-child{ border-bottom:0; }
 .mz-unit:hover, .mz-unit:focus-visible{ background:var(--paper-light); }
 .mz-unit:focus-visible{ outline:3px solid var(--acid); outline-offset:-3px; }
 .mz-unit-head{ display:flex; align-items:center; gap:8px; }
@@ -121,7 +129,6 @@ const STYLES = `
   .mz-units{ grid-template-columns:repeat(2,1fr); }
   .mz-unit:nth-child(3n){ border-right:1px solid var(--ink); }
   .mz-unit:nth-child(2n){ border-right:0; }
-  .mz-unit:last-child{ border-right:0; border-bottom:0; }
 }
 @media(max-width:650px){
   .mz-index{ padding:16px; }
