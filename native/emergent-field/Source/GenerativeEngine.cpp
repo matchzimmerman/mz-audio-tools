@@ -41,6 +41,7 @@ constexpr float laneBias[GenerativeEngine::numStreams] = {
 };
 
 constexpr double twoPi = juce::MathConstants<double>::twoPi;
+constexpr double quarterPi = juce::MathConstants<double>::pi * 0.25;
 
 float coefficientForSeconds (double sampleRate, double seconds) noexcept
 {
@@ -154,11 +155,18 @@ void GenerativeEngine::process (juce::AudioBuffer<float>& output,
     const auto mutation = mutationRequested.exchange (false, std::memory_order_acq_rel);
     if (mutation)
     {
-        fieldRng ^= nextRandom (fieldRng) + 0x7f4a7c15U;
+        const auto mutationSalt = nextRandom (fieldRng);
+        fieldRng ^= mutationSalt + 0x7f4a7c15U;
+        if (fieldRng == 0U)
+            fieldRng = 0x4d5a434dU;
+
         for (int i = 0; i < numStreams; ++i)
         {
             auto& stream = streams[static_cast<std::size_t> (i)];
             stream.rng ^= nextRandom (fieldRng) + static_cast<std::uint32_t> (i * 7919 + 17);
+            if (stream.rng == 0U)
+                stream.rng = static_cast<std::uint32_t> (i + 1);
+
             stream.samplesUntilEvent = juce::jmin (
                 stream.samplesUntilEvent,
                 sampleRate * 60.0 / bpm * (0.08 + 0.35 * random01 (stream.rng)));
@@ -267,8 +275,7 @@ void GenerativeEngine::process (juce::AudioBuffer<float>& output,
                 stream.pan + static_cast<float> (std::sin (stream.lfoPhase)) * driftDepth);
             stream.lastEffectivePan = effectivePan;
 
-            const auto angle = static_cast<double> (effectivePan + 1.0f)
-                               * juce::MathConstants<double>::quarterPi;
+            const auto angle = static_cast<double> (effectivePan + 1.0f) * quarterPi;
             const auto leftGain = static_cast<float> (std::cos (angle));
             const auto rightGain = static_cast<float> (std::sin (angle));
             const auto value = raw[static_cast<std::size_t> (i)] * stream.duckGain;
