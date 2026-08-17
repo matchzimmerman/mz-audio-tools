@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const TOOLS: Record<string, { id: string; name: string }> = {
-  "/magpie": { id: "01", name: "MAGPIE" },
+  "/magpie": { id: "01", name: "GULL" },
   "/serial": { id: "02", name: "SERIAL" },
   "/erd": { id: "03", name: "ER·D" },
   "/coasts": { id: "04", name: "COASTS" },
