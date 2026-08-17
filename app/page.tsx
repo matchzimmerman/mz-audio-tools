@@ -4,7 +4,7 @@ const UNITS = [
   {
     id: "01",
     plate: "MZCMG_SL-01",
-    name: "MAGPIE",
+    name: "GULL",
     tagline: "AVIAN SIGNAL SYNTHESIZER",
     description: "A playable generative synthesizer for metallic calls, fluttering phrases, and strange field recordings.",
     href: "/magpie",
