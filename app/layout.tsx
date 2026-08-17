@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import SonicLabHeader from "./sonic-lab-header";
 
 export const metadata: Metadata = {
-  title: "MZ Audio Tools",
-  description: "A field station of playable browser instruments and audio experiments.",
+  title: "MZCMG // SONIC LAB",
+  description: "A field station of playable browser instruments and audio experiments from Match Zimmerman Creative Media Group.",
   icons: {
     icon: "/favicon.svg",
     shortcut: "/favicon.svg",
@@ -17,7 +18,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <SonicLabHeader />
+        {children}
+      </body>
     </html>
   );
 }
