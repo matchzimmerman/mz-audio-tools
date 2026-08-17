@@ -3,7 +3,7 @@ import Link from "next/link";
 const UNITS = [
   {
     id: "01",
-    plate: "MZ–01",
+    plate: "MZCMG_SL-01",
     name: "MAGPIE",
     tagline: "AVIAN SIGNAL SYNTHESIZER",
     description: "A playable generative synthesizer for metallic calls, fluttering phrases, and strange field recordings.",
@@ -11,7 +11,7 @@ const UNITS = [
   },
   {
     id: "02",
-    plate: "MZ–02",
+    plate: "MZCMG_SL-02",
     name: "SERIAL",
     tagline: "SEQUENTIAL EFFECTS LAB",
     description: "Drag, snap, listen, and reorder real audio effects to hear firsthand why order changes the result.",
@@ -19,7 +19,7 @@ const UNITS = [
   },
   {
     id: "03",
-    plate: "MZ–03",
+    plate: "MZCMG_SL-03",
     name: "ER·D",
     tagline: "SIX-VOICE PERCUSSION SYNTH",
     description: "One oscillator, one modulator, one decay per voice — a 16-step drum machine tuned to D Phrygian.",
@@ -27,7 +27,7 @@ const UNITS = [
   },
   {
     id: "04",
-    plate: "MZ–04",
+    plate: "MZCMG_SL-04",
     name: "COASTS",
     tagline: "DUAL SYNTHESIS PHILOSOPHY",
     description: "Toggle between East Coast subtractive control and West Coast complex timbre, touch voltage, and low-pass gates.",
@@ -35,23 +35,23 @@ const UNITS = [
   },
   {
     id: "05",
-    plate: "MZ–05",
+    plate: "MZCMG_SL-05",
     name: "SPECTRAL PARTICLES",
     tagline: "FREQUENCY PHYSICS VISUALIZER",
     description: "Load a track or use the microphone to drive five interacting particle behaviors across the audible spectrum.",
-    href: "/spectral-particles/index.html",
+    href: "/spectral-particles",
   },
   {
     id: "06",
-    plate: "MZ–06",
+    plate: "MZCMG_SL-06",
     name: "VISUAL ENGINE",
     tagline: "MULTI-SEND ORGANIC BIT SYSTEM",
     description: "Load separate stems, assign each track a visual role, perform full-screen scenes, and capture audio-reactive video.",
-    href: "/visual-engine/index.html",
+    href: "/visual-engine",
   },
   {
     id: "07",
-    plate: "MZ–07",
+    plate: "MZCMG_SL-07",
     name: "FIELD CHORUS",
     tagline: "MID-ATLANTIC ECOLOGY MIXER",
     description: "Build a living MD / PA / DE sound field by season, hour, habitat, and species — then let the ecology run itself.",
@@ -59,7 +59,7 @@ const UNITS = [
   },
   {
     id: "08",
-    plate: "MZ–08",
+    plate: "MZCMG_SL-08",
     name: "EMERGENT FIELD",
     tagline: "GENERATIVE MIX-AWARE INSTRUMENT",
     description: "Six coupled streams compose, negotiate spectral space, adapt event density, and continually redistribute themselves across the stereo field.",
@@ -72,7 +72,7 @@ export default function IndexPage() {
     <main className="mz-index">
       <style>{STYLES}</style>
       <header className="mz-masthead">
-        <h1>MZ AUDIO TOOLS</h1>
+        <h1>MZCMG // SONIC LAB</h1>
         <p>FIELD STATION OF PLAYABLE BROWSER INSTRUMENTS</p>
       </header>
 
@@ -92,9 +92,9 @@ export default function IndexPage() {
       </section>
 
       <footer className="mz-foot">
-        <span>MZ AUDIO TOOLS</span>
+        <span>MZCMG // SONIC LAB</span>
         <span>8 INSTRUMENTS / WEB AUDIO / BROWSER NATIVE</span>
-        <span>FIELD STATION INDEX</span>
+        <span>MATCH ZIMMERMAN CREATIVE MEDIA GROUP</span>
       </footer>
     </main>
   );
