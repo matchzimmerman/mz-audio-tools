@@ -1,4 +1,4 @@
-name: Build MZ Mix System Native
+name: Build MZ Native Systems
 
 on:
   push:
@@ -6,10 +6,12 @@ on:
       - main
     paths:
       - "native/mix-system/**"
+      - "native/emergent-field/**"
       - ".github/workflows/mix-system-native.yml"
   pull_request:
     paths:
       - "native/mix-system/**"
+      - "native/emergent-field/**"
       - ".github/workflows/mix-system-native.yml"
   workflow_dispatch:
 
@@ -18,8 +20,23 @@ permissions:
 
 jobs:
   macos-universal:
+    name: macOS / ${{ matrix.product }}
     runs-on: macos-15
     timeout-minutes: 50
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - product: MZ MIX SYSTEM
+            project_dir: native/mix-system
+            target: MZMixSystem_All
+            artefact_dir: MZMixSystem_artefacts
+            package: MZ-MIX-SYSTEM
+          - product: MZ EMERGENT FIELD
+            project_dir: native/emergent-field
+            target: MZEmergentField_All
+            artefact_dir: MZEmergentField_artefacts
+            package: MZ-EMERGENT-FIELD
 
     steps:
       - name: Check out repository
@@ -29,63 +46,80 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          mkdir -p native/mix-system/ci-logs/macos
-          cmake -S native/mix-system -B native/mix-system/build -G Xcode \
+          mkdir -p "${{ matrix.project_dir }}/ci-logs/macos"
+          cmake -S "${{ matrix.project_dir }}" -B "${{ matrix.project_dir }}/build" -G Xcode \
             -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" \
             -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0 \
-            2>&1 | tee native/mix-system/ci-logs/macos/configure.log
+            2>&1 | tee "${{ matrix.project_dir }}/ci-logs/macos/configure.log"
 
       - name: Build AU VST3 and standalone
         shell: bash
         run: |
           set -o pipefail
-          cmake --build native/mix-system/build --config Release \
-            --target MZMixSystem_All --parallel 3 \
-            2>&1 | tee native/mix-system/ci-logs/macos/build.log
+          cmake --build "${{ matrix.project_dir }}/build" --config Release \
+            --target "${{ matrix.target }}" --parallel 3 \
+            2>&1 | tee "${{ matrix.project_dir }}/ci-logs/macos/build.log"
 
       - name: Collect macOS bundles
         shell: bash
         run: |
           set -euo pipefail
-          rm -rf native/mix-system/dist-macos
-          mkdir -p native/mix-system/dist-macos
+          project="${{ matrix.project_dir }}"
+          dist="${project}/dist-macos"
+          rm -rf "$dist"
+          mkdir -p "$dist"
 
           bundle_count=0
           while IFS= read -r -d '' bundle; do
-            cp -R "$bundle" native/mix-system/dist-macos/
+            cp -R "$bundle" "$dist/"
             bundle_count=$((bundle_count + 1))
           done < <(
-            find native/mix-system/build/MZMixSystem_artefacts/Release \
+            find "${project}/build/${{ matrix.artefact_dir }}/Release" \
               -maxdepth 3 -type d \
               \( -name '*.vst3' -o -name '*.component' -o -name '*.app' \) \
               -print0
           )
 
-          echo "Collected ${bundle_count} macOS bundles"
+          echo "Collected ${bundle_count} macOS bundles for ${{ matrix.product }}"
           test "$bundle_count" -ge 3
           ditto -c -k --sequesterRsrc --keepParent \
-            native/mix-system/dist-macos native/mix-system/MZ-MIX-SYSTEM-macOS.zip
+            "$dist" "${project}/${{ matrix.package }}-macOS.zip"
 
       - name: Upload macOS diagnostics
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: MZ-MIX-SYSTEM-macOS-diagnostics
-          path: native/mix-system/ci-logs/macos
+          name: ${{ matrix.package }}-macOS-diagnostics
+          path: ${{ matrix.project_dir }}/ci-logs/macos
           if-no-files-found: error
           retention-days: 14
 
       - name: Upload unsigned macOS build
         uses: actions/upload-artifact@v4
         with:
-          name: MZ-MIX-SYSTEM-macOS-unsigned
-          path: native/mix-system/MZ-MIX-SYSTEM-macOS.zip
+          name: ${{ matrix.package }}-macOS-unsigned
+          path: ${{ matrix.project_dir }}/${{ matrix.package }}-macOS.zip
           if-no-files-found: error
           retention-days: 14
 
   windows-x64:
+    name: Windows / ${{ matrix.product }}
     runs-on: windows-latest
     timeout-minutes: 50
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - product: MZ MIX SYSTEM
+            project_dir: native/mix-system
+            target: MZMixSystem_All
+            artefact_dir: MZMixSystem_artefacts
+            package: MZ-MIX-SYSTEM
+          - product: MZ EMERGENT FIELD
+            project_dir: native/emergent-field
+            target: MZEmergentField_All
+            artefact_dir: MZEmergentField_artefacts
+            package: MZ-EMERGENT-FIELD
 
     steps:
       - name: Check out repository
@@ -94,25 +128,28 @@ jobs:
       - name: Configure Windows x64 build
         shell: pwsh
         run: |
-          New-Item -ItemType Directory -Force native/mix-system/ci-logs/windows | Out-Null
-          cmake -S native/mix-system -B native/mix-system/build-windows `
+          $project = "${{ matrix.project_dir }}"
+          New-Item -ItemType Directory -Force "$project/ci-logs/windows" | Out-Null
+          cmake -S $project -B "$project/build-windows" `
             -G "Visual Studio 18 2026" -A x64 `
-            2>&1 | Tee-Object native/mix-system/ci-logs/windows/configure.log
+            2>&1 | Tee-Object "$project/ci-logs/windows/configure.log"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Build VST3 and standalone
         shell: pwsh
         run: |
-          cmake --build native/mix-system/build-windows --config Release `
-            --target MZMixSystem_All --parallel 3 `
-            2>&1 | Tee-Object native/mix-system/ci-logs/windows/build.log
+          $project = "${{ matrix.project_dir }}"
+          cmake --build "$project/build-windows" --config Release `
+            --target "${{ matrix.target }}" --parallel 3 `
+            2>&1 | Tee-Object "$project/ci-logs/windows/build.log"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Collect Windows bundles
         shell: pwsh
         run: |
-          $source = "native/mix-system/build-windows/MZMixSystem_artefacts/Release"
-          $dist = "native/mix-system/dist-windows"
+          $project = "${{ matrix.project_dir }}"
+          $source = "$project/build-windows/${{ matrix.artefact_dir }}/Release"
+          $dist = "$project/dist-windows"
           Remove-Item $dist -Recurse -Force -ErrorAction SilentlyContinue
           New-Item -ItemType Directory -Force $dist | Out-Null
 
@@ -124,25 +161,25 @@ jobs:
           }
 
           $count = (Get-ChildItem $dist).Count
-          Write-Host "Collected $count Windows bundles"
+          Write-Host "Collected $count Windows bundles for ${{ matrix.product }}"
           if ($count -lt 2) { throw "Expected VST3 and standalone outputs" }
 
           Compress-Archive -Path "$dist/*" `
-            -DestinationPath native/mix-system/MZ-MIX-SYSTEM-Windows.zip -Force
+            -DestinationPath "$project/${{ matrix.package }}-Windows.zip" -Force
 
       - name: Upload Windows diagnostics
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: MZ-MIX-SYSTEM-Windows-diagnostics
-          path: native/mix-system/ci-logs/windows
+          name: ${{ matrix.package }}-Windows-diagnostics
+          path: ${{ matrix.project_dir }}/ci-logs/windows
           if-no-files-found: error
           retention-days: 14
 
       - name: Upload unsigned Windows build
         uses: actions/upload-artifact@v4
         with:
-          name: MZ-MIX-SYSTEM-Windows-unsigned
-          path: native/mix-system/MZ-MIX-SYSTEM-Windows.zip
+          name: ${{ matrix.package }}-Windows-unsigned
+          path: ${{ matrix.project_dir }}/${{ matrix.package }}-Windows.zip
           if-no-files-found: error
           retention-days: 14
