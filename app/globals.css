@@ -92,6 +92,27 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
   box-shadow: 0 7px 12px rgba(29, 29, 27, .06);
 }
 
+/* Device 01 display name has moved from MAGPIE to GULL. Keep the legacy
+   route and engine names stable while presenting the new instrument name. */
+.magpie .masthead h1 {
+  font-size: 0 !important;
+}
+.magpie .masthead h1::after {
+  content: "GULL";
+  font-size: clamp(48px, 6.2vw, 92px);
+  letter-spacing: -.075em;
+  line-height: .72;
+  font-weight: 900;
+}
+.magpie footer span:first-child {
+  font-size: 0 !important;
+}
+.magpie footer span:first-child::after {
+  content: "GULL SIGNAL LABORATORY";
+  font: 700 7px var(--mono);
+  letter-spacing: .08em;
+}
+
 /* The global bar carries the full canonical ID (MZCMG_SL-##). The local
    instrument plate uses a compact SL-## shorthand so the small industrial
    badge stays legible instead of cramming a long string into a square. */
