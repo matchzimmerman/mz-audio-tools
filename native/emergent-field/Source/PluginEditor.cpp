@@ -9,7 +9,7 @@ const auto paper = juce::Colour::fromRGB (238, 233, 220);
 const auto paperDeep = juce::Colour::fromRGB (213, 208, 196);
 const auto paperLight = juce::Colour::fromRGB (250, 246, 235);
 const auto ink = juce::Colour::fromRGB (29, 29, 27);
-const auto signal = juce::Colour::fromRGB (223, 255, 0);
+const auto signalColour = juce::Colour::fromRGB (223, 255, 0);
 const auto muted = juce::Colour::fromRGB (119, 117, 110);
 const auto line = ink.withAlpha (0.28f);
 
@@ -62,7 +62,7 @@ void MZEmergentFieldAudioProcessorEditor::FieldLookAndFeel::drawRotarySlider (
     juce::Path value;
     value.addCentredArc (centre.x, centre.y, radius - 5.0f, radius - 5.0f,
                          0.0f, rotaryStartAngle, angle, true);
-    g.setColour (signal);
+    g.setColour (signalColour);
     g.strokePath (value, juce::PathStrokeType (4.0f));
 
     const auto pointerRadius = radius - 10.0f;
@@ -82,7 +82,7 @@ void MZEmergentFieldAudioProcessorEditor::FieldLookAndFeel::drawButtonBackground
 {
     juce::ignoreUnused (backgroundColour);
     auto area = button.getLocalBounds().toFloat().reduced (0.5f);
-    g.setColour (shouldDrawButtonAsDown || shouldDrawButtonAsHighlighted ? signal : paperLight);
+    g.setColour (shouldDrawButtonAsDown || shouldDrawButtonAsHighlighted ? signalColour : paperLight);
     g.fillRect (area);
     g.setColour (ink);
     g.drawRect (area, shouldDrawButtonAsDown ? 2.0f : 1.0f);
@@ -152,7 +152,7 @@ MZEmergentFieldAudioProcessorEditor::MZEmergentFieldAudioProcessorEditor (
     configureCombo (clockBox, { "HOST", "FREE" });
 
     mutateButton.setColour (juce::TextButton::buttonColourId, paperLight);
-    mutateButton.setColour (juce::TextButton::buttonOnColourId, signal);
+    mutateButton.setColour (juce::TextButton::buttonOnColourId, signalColour);
     mutateButton.onClick = [this] { processor.requestMutation(); };
 
     for (auto* component : std::array<juce::Component*, 12>
@@ -223,7 +223,7 @@ void MZEmergentFieldAudioProcessorEditor::paint (juce::Graphics& g)
                 titleArea.removeFromTop (20), juce::Justification::centredLeft);
 
     auto plate = juce::Rectangle<int> (getWidth() - 172, 24, 144, 52);
-    g.setColour (signal);
+    g.setColour (signalColour);
     g.fillRect (plate);
     g.setColour (ink);
     g.drawRect (plate, 1);
@@ -302,7 +302,7 @@ void MZEmergentFieldAudioProcessorEditor::drawObservation (juce::Graphics& g,
 
         auto fill = meter.reduced (4);
         fill.removeFromTop (juce::roundToInt (fill.getHeight() * (1.0f - levelNorm)));
-        g.setColour (signal);
+        g.setColour (signalColour);
         g.fillRect (fill);
 
         g.setColour (ink);
@@ -322,7 +322,7 @@ void MZEmergentFieldAudioProcessorEditor::drawObservation (juce::Graphics& g,
         const auto panX = juce::jmap (pan, -1.0f, 1.0f,
                                      static_cast<float> (panArea.getX()),
                                      static_cast<float> (panArea.getRight()));
-        g.setColour (signal);
+        g.setColour (signalColour);
         g.fillEllipse (panX - 4.0f, static_cast<float> (panArea.getCentreY()) - 4.0f, 8.0f, 8.0f);
         g.setColour (ink);
         g.drawEllipse (panX - 4.0f, static_cast<float> (panArea.getCentreY()) - 4.0f, 8.0f, 8.0f, 1.0f);
@@ -401,7 +401,7 @@ void MZEmergentFieldAudioProcessorEditor::drawModuleFrame (
 
     auto heading = area.removeFromTop (42).reduced (10, 8);
     auto indexBox = heading.removeFromLeft (26).withSizeKeepingCentre (24, 24);
-    g.setColour (signal);
+    g.setColour (signalColour);
     g.fillRect (indexBox);
     g.setColour (ink);
     g.drawRect (indexBox, 1);
