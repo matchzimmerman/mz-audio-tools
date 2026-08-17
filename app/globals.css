@@ -10,6 +10,7 @@
   --line: rgba(29, 29, 27, 0.32);
   --danger: #b82618;
   --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --sonic-lab-bar-height: 38px;
 }
 
 /* Shared primitives only. Each tool under app/<tool>/ owns its own
@@ -30,7 +31,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
   position: sticky;
   top: 0;
   z-index: 9999;
-  min-height: 38px;
+  min-height: var(--sonic-lab-bar-height);
   display: flex;
   align-items: stretch;
   justify-content: space-between;
@@ -75,9 +76,25 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
   font-weight: 900;
 }
 
-/* Visually migrate legacy unit plates without rewriting every instrument's
-   large self-contained component. The persistent header above carries the
-   same canonical unit ID while scrolling. */
+/* Keep each instrument's own large identity masthead visible beneath the
+   global capture bar. This means screen recordings retain both the lab
+   identity and the actual device name while the user works lower down. */
+.magpie .masthead,
+.serial-app .masthead,
+.erd .erd-masthead,
+.coasts .co-masthead,
+.fc-app .fc-masthead,
+.ef-app .ef-masthead {
+  position: sticky !important;
+  top: var(--sonic-lab-bar-height) !important;
+  z-index: 9998 !important;
+  background: var(--paper) !important;
+  box-shadow: 0 7px 12px rgba(29, 29, 27, .06);
+}
+
+/* The global bar carries the full canonical ID (MZCMG_SL-##). The local
+   instrument plate uses a compact SL-## shorthand so the small industrial
+   badge stays legible instead of cramming a long string into a square. */
 .magpie .plate,
 .serial-app .plate,
 .erd .erd-plate,
@@ -86,20 +103,21 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 .ef-app .ef-plate {
   font-size: 0 !important;
 }
-.magpie .plate::after { content: "MZCMG_SL-01"; }
-.serial-app .plate::after { content: "MZCMG_SL-02"; }
-.erd .erd-plate::after { content: "MZCMG_SL-03"; }
-.coasts .co-plate::after { content: "MZCMG_SL-04"; }
-.fc-app .fc-plate::after { content: "MZCMG_SL-07"; }
-.ef-app .ef-plate::after { content: "MZCMG_SL-08"; }
+.magpie .plate::after { content: "SL-01"; }
+.serial-app .plate::after { content: "SL-02"; }
+.erd .erd-plate::after { content: "SL-03"; }
+.coasts .co-plate::after { content: "SL-04"; }
+.fc-app .fc-plate::after { content: "SL-07"; }
+.ef-app .ef-plate::after { content: "SL-08"; }
 .magpie .plate::after,
 .serial-app .plate::after,
 .erd .erd-plate::after,
 .coasts .co-plate::after,
 .fc-app .fc-plate::after,
 .ef-app .ef-plate::after {
-  font: 900 8px/1 var(--mono);
-  letter-spacing: .04em;
+  font: 950 9px/1 var(--mono);
+  letter-spacing: .05em;
+  white-space: nowrap;
 }
 .ef-app .ef-brand {
   font-size: 0 !important;
@@ -126,6 +144,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 }
 
 @media (max-width: 620px) {
+  :root { --sonic-lab-bar-height: 36px; }
   .sonic-lab-global-header { gap: 4px; }
   .sonic-lab-brand { padding: 9px 10px; font-size: 9px; }
   .sonic-lab-current { gap: 6px; padding: 7px 9px; font-size: 8px; }
