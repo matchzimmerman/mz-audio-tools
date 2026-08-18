@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import EmbedMode from "./embed-mode";
 import SonicLabHeader from "./sonic-lab-header";
 
 export const metadata: Metadata = {
@@ -19,6 +20,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
+        <EmbedMode />
         <SonicLabHeader />
         {children}
       </body>
