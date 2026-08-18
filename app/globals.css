@@ -156,6 +156,45 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
   letter-spacing: .06em;
 }
 
+/* Embedded device mode: when a standalone device is running inside the
+   SONIC LAB host, the host owns navigation, identity, and device naming.
+   Suppress standalone-only chrome so each tab reads as one continuous
+   instrument rather than a website embedded inside another website. */
+.sonic-lab-embedded .sonic-lab-global-header,
+.sonic-lab-embedded .magpie .masthead,
+.sonic-lab-embedded .serial-app .masthead,
+.sonic-lab-embedded .erd .erd-masthead,
+.sonic-lab-embedded .coasts .co-masthead,
+.sonic-lab-embedded .fc-app .fc-masthead,
+.sonic-lab-embedded .ef-app .ef-masthead,
+.sonic-lab-embedded .fc-brandbar,
+.sonic-lab-embedded .fc-brandfoot {
+  display: none !important;
+}
+.sonic-lab-embedded .magpie .masthead,
+.sonic-lab-embedded .serial-app .masthead,
+.sonic-lab-embedded .erd .erd-masthead,
+.sonic-lab-embedded .coasts .co-masthead,
+.sonic-lab-embedded .fc-app .fc-masthead,
+.sonic-lab-embedded .ef-app .ef-masthead {
+  position: static !important;
+  top: auto !important;
+  box-shadow: none !important;
+}
+.sonic-lab-embedded-body {
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+.sonic-lab-embedded .magpie,
+.sonic-lab-embedded .serial-app,
+.sonic-lab-embedded .erd,
+.sonic-lab-embedded .coasts,
+.sonic-lab-embedded .fc-app,
+.sonic-lab-embedded .ef-app {
+  padding-top: 0 !important;
+  margin-top: 0 !important;
+}
+
 .sonic-static-frame {
   display: block;
   width: 100%;
