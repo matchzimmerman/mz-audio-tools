@@ -18,6 +18,9 @@ export default function SonicLabHeader() {
   const pathname = usePathname();
   const tool = TOOLS[pathname];
 
+  // The integrated host owns the full persistent shell on /lab.
+  if (pathname === "/lab" || pathname.startsWith("/lab/")) return null;
+
   return (
     <header className="sonic-lab-global-header">
       <Link href="/" className="sonic-lab-brand" aria-label="MZCMG Sonic Lab index">
