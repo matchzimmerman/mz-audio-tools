@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no" />
+<meta name="theme-color" content="#eee9dc" />
+<title>MZCMG // SONIC LAB — CLUB FIELD v0.1</title>
+<link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+<main class="app">
+  <header class="mast">
+    <div>
+      <div class="brand">CLUB FIELD</div>
+      <div class="sub">MZCMG // SONIC LAB · FIVE-CITY RHYTHM + TIMBRE MORPH ENGINE</div>
+    </div>
+    <div class="rev">MZCMG_SL · V0.1</div>
+  </header>
+
+  <section class="transport" aria-label="Transport">
+    <button id="playBtn" class="btn">▶ START AUDIO</button>
+    <div class="valuebtn"><span>BPM</span><b id="bpmRead">132</b></div>
+    <button id="resetBtn" class="btn">CENTER</button>
+  </section>
+
+  <div class="section-head"><span class="idx">01</span><h2>Influence Field</h2><span>DIRECT MANIPULATION</span></div>
+  <section id="field" class="field-wrap" aria-label="Club influence field. Drag to change city influence." tabindex="0">
+    <svg id="fieldSvg" viewBox="0 0 640 600" role="img" aria-label="Pentagonal influence field">
+      <polygon class="pent" points="320,70 545,235 460,500 180,500 95,235"></polygon>
+      <line class="spoke" x1="320" y1="300" x2="320" y2="70"/>
+      <line class="spoke" x1="320" y1="300" x2="545" y2="235"/>
+      <line class="spoke" x1="320" y1="300" x2="460" y2="500"/>
+      <line class="spoke" x1="320" y1="300" x2="180" y2="500"/>
+      <line class="spoke" x1="320" y1="300" x2="95" y2="235"/>
+      <g id="influenceLines"></g>
+
+      <circle id="a0" class="anchor" cx="320" cy="70" r="8"/><text class="city-label" x="320" y="43" text-anchor="middle">BALTIMORE</text><text class="city-sub" x="320" y="56" text-anchor="middle">CLUB</text>
+      <circle id="a1" class="anchor" cx="545" cy="235" r="8"/><text class="city-label" x="560" y="226">LONDON</text><text class="city-sub" x="560" y="239">GARAGE / JUNGLE</text>
+      <circle id="a2" class="anchor" cx="460" cy="500" r="8"/><text class="city-label" x="478" y="517">KINGSTON</text><text class="city-sub" x="478" y="530">DUB / DANCEHALL</text>
+      <circle id="a3" class="anchor" cx="180" cy="500" r="8"/><text class="city-label" x="162" y="517" text-anchor="end">BERLIN</text><text class="city-sub" x="162" y="530" text-anchor="end">TECHNO</text>
+      <circle id="a4" class="anchor" cx="95" cy="235" r="8"/><text class="city-label" x="80" y="226" text-anchor="end">DETROIT</text><text class="city-sub" x="80" y="239" text-anchor="end">TECHNO / ELECTRO</text>
+
+      <g id="puck" aria-hidden="true">
+        <circle class="puckOuter" cx="320" cy="300" r="18"></circle>
+        <circle class="puckInner" cx="320" cy="300" r="4"></circle>
+      </g>
+    </svg>
+  </section>
+
+  <section class="register" id="register" aria-label="Current city weights">
+    <div class="reg"><label>BAL</label><strong id="w0">20%</strong><div class="bar"><i id="b0"></i></div></div>
+    <div class="reg"><label>LDN</label><strong id="w1">20%</strong><div class="bar"><i id="b1"></i></div></div>
+    <div class="reg"><label>KNG</label><strong id="w2">20%</strong><div class="bar"><i id="b2"></i></div></div>
+    <div class="reg"><label>BER</label><strong id="w3">20%</strong><div class="bar"><i id="b3"></i></div></div>
+    <div class="reg"><label>DET</label><strong id="w4">20%</strong><div class="bar"><i id="b4"></i></div></div>
+  </section>
+
+  <div class="section-head"><span class="idx">02</span><h2>Core Rhythm</h2><span>PATTERN REMAINS / FIELD MUTATES</span></div>
+  <section class="core" aria-label="Choose core rhythm">
+    <button data-core="baltimore" class="active">Baltimore<small>OFFSET / CHOP</small></button>
+    <button data-core="london">London<small>SHUFFLE / BREAK</small></button>
+    <button data-core="kingston">Kingston<small>SPACE / OFFBEAT</small></button>
+    <button data-core="berlin">Berlin<small>PULSE / REDUCE</small></button>
+    <button data-core="detroit">Detroit<small>MACHINE / FUNK</small></button>
+  </section>
+
+  <section class="telemetry" aria-label="Current synthesis telemetry">
+    <div><label>Kick body</label><b id="kickT">MID / SHORT</b></div>
+    <div><label>Sub role</label><b id="subT">LOW</b></div>
+    <div><label>Space</label><b id="spaceT">DEAD / DIRECT</b></div>
+    <div><label>Stereo</label><b id="stereoT">NARROW</b></div>
+  </section>
+
+  <div class="note"><b>V0.1 METHOD</b> The selected rhythm is the skeleton. The field does not crossfade five kits: it interpolates synthesis, orchestration, timing, panning, delay, reverb, filtering and event behavior around that skeleton.</div>
+  <footer class="footer"><span>MATCH ZIMMERMAN CREATIVE MEDIA GROUP</span><span>HEADPHONES RECOMMENDED</span></footer>
+</main>
+<script src="./club-field.js"></script>
+</body>
+</html>
