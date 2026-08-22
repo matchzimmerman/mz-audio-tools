@@ -9,6 +9,7 @@ const UNITS = [
   { id: "06", plate: "MZCMG_SL-06", name: "VISUAL ENGINE", tagline: "MULTI-SEND ORGANIC BIT SYSTEM", description: "Load separate stems, assign each track a visual role, perform full-screen scenes, and capture audio-reactive video.", href: "/visual-engine", type: "visual" },
   { id: "07", plate: "MZCMG_SL-07", name: "FIELD CHORUS", tagline: "MID-ATLANTIC ECOLOGY MIXER", description: "Build a living MD / PA / DE sound field by season, hour, habitat, and species — then let the ecology run itself.", href: "/field-chorus", type: "audio" },
   { id: "08", plate: "MZCMG_SL-08", name: "EMERGENT FIELD", tagline: "GENERATIVE MIX-AWARE INSTRUMENT", description: "Six coupled streams compose, negotiate spectral space, adapt event density, and continually redistribute themselves across the stereo field.", href: "/emergent-field", type: "audio" },
+  { id: "09", plate: "MZCMG_SL-09", name: "BANGER", tagline: "KICK × SUB NESTING ENGINE", description: "Fuse bumping kicks and low sub into one coordinated IMPACT → WEIGHT event with tuned handoff, translation, sequencing, and loop bounce.", href: "/banger", type: "audio" },
 ];
 
 export default function IndexPage() {
@@ -43,7 +44,7 @@ export default function IndexPage() {
 
       <footer className="mz-foot">
         <span>MZCMG // SONIC LAB</span>
-        <span>6 AUDIO DEVICES / 2 VISUAL DEVICES / SHARED HOST IN DEVELOPMENT</span>
+        <span>7 AUDIO DEVICES / 2 VISUAL DEVICES / SHARED HOST IN DEVELOPMENT</span>
         <span>MATCH ZIMMERMAN CREATIVE MEDIA GROUP</span>
       </footer>
     </main>
