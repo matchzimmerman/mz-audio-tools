@@ -14,12 +14,7 @@ type Blast = { sector: number; life: number };
 function parseSector(text: string) {
   const t = text.toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
   for (const [word, n] of Object.entries(WORDS)) {
-    if (
-      t.includes(`sector ${word}`) ||
-      t.includes(`sector ${n}`) ||
-      t === word ||
-      t === String(n)
-    ) return n;
+    if (t === word || t === String(n)) return n;
   }
   return null;
 }
@@ -47,7 +42,7 @@ export default function ObasSectorDefensePage() {
       return true;
     });
     if (hits) setScore((s) => s + hits * 100);
-    setHeard(`SECTOR ${sector} // FIRE`);
+    setHeard(`${sector} // FIRE`);
   }
 
   useEffect(() => {
@@ -65,7 +60,7 @@ export default function ObasSectorDefensePage() {
 
     recognition.onstart = () => {
       setListening(true);
-      setHeard('LISTENING // SAY “SECTOR THREE”');
+      setHeard('LISTENING // SAY “THREE”');
     };
 
     recognition.onresult = (event: any) => {
@@ -82,7 +77,7 @@ export default function ObasSectorDefensePage() {
       if (finalTranscript.trim()) {
         const sector = parseSector(finalTranscript);
         if (sector) fireSector(sector);
-        else setHeard(`${finalTranscript.trim().toUpperCase()} // NO SECTOR MATCH`);
+        else setHeard(`${finalTranscript.trim().toUpperCase()} // NO MATCH`);
       }
     };
 
@@ -123,7 +118,7 @@ export default function ObasSectorDefensePage() {
 
     if (!shouldListenRef.current) {
       shouldListenRef.current = true;
-      setHeard('REQUESTING MICROPHONE // SAY “SECTOR THREE”');
+      setHeard('REQUESTING MICROPHONE // SAY “THREE”');
       try {
         recognition.start();
       } catch (err: any) {
@@ -185,7 +180,7 @@ export default function ObasSectorDefensePage() {
         ctx.fillStyle = 'rgba(218,255,0,.72)';
         ctx.font = '11px monospace';
         ctx.textAlign = 'center';
-        ctx.fillText(`S${i + 1}`, cx + Math.cos(am) * (radius - 18), cy + Math.sin(am) * (radius - 18));
+        ctx.fillText(`${i + 1}`, cx + Math.cos(am) * (radius - 18), cy + Math.sin(am) * (radius - 18));
       }
 
       if (started) {
@@ -270,7 +265,7 @@ export default function ObasSectorDefensePage() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(120px,1fr))', gap: 8, marginTop: 10 }}>
           {Array.from({ length: 8 }, (_, i) => i + 1).map((n) => (
             <button key={n} onClick={() => fireSector(n)} style={{ minHeight: 44, border: '1px solid #daff00', background: '#050505', color: '#daff00', font: 'inherit', cursor: 'pointer' }}>
-              SECTOR {n}
+              {n}
             </button>
           ))}
         </div>
@@ -288,7 +283,7 @@ export default function ObasSectorDefensePage() {
         </div>
 
         <p style={{ color: '#8c8c8c', fontSize: 12, lineHeight: 1.5, marginTop: 10 }}>
-          Call “Sector one” through “Sector eight.” The status panel now shows the live transcript or the exact browser speech error. Manual sector keys remain active as fallback controls.
+          Say only the number: “one” through “eight.” The named wedge fires immediately. Manual number keys remain active as fallback controls.
         </p>
       </div>
     </main>
