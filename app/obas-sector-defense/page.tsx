@@ -3,43 +3,42 @@
 import { useEffect, useRef, useState } from 'react';
 
 const SECTORS = 8;
-const STEPS = 16;
-const VOICES = ['KICK', 'SNARE', 'CLOSED HAT', 'OPEN HAT', 'CLAP', 'TOM', 'PERC', 'FX'];
-const COLORS = ['#daff00', '#ff5a36', '#f2f2f2', '#6ee7ff', '#ff85d7', '#ffcf40', '#b6ff7a', '#a890ff'];
+const KEYS = ['a','s','d','f','j','k','l',';'];
+const LABELS = ['A','S','D','F','J','K','L',';'];
+const VOICES = ['KICK','SNARE','HAT','TOM','KICK','CLAP','HAT','PERC'];
+const STEP_MS = 250;
+const TRAVEL_MS = 1800;
+const HIT_RADIUS = 70;
+const PERFECT_WINDOW = 70;
+const GOOD_WINDOW = 135;
 
-type Grid = boolean[][];
+const PATTERN:number[][] = [
+  [0,2],[],[2],[],
+  [1,2],[],[2],[6],
+  [4,2],[],[2,7],[],
+  [5,2],[],[2],[3,6],
+];
 
-function blankGrid(): Grid {
-  return Array.from({ length: STEPS }, () => Array(SECTORS).fill(false));
-}
-
-function starterGrid(): Grid {
-  const g = blankGrid();
-  [0, 4, 8, 12].forEach((s) => (g[s][0] = true));
-  [4, 12].forEach((s) => (g[s][1] = true));
-  for (let s = 0; s < STEPS; s += 2) g[s][2] = true;
-  g[7][4] = true;
-  g[15][5] = true;
-  return g;
-}
+type Note = { id:number; sector:number; bornAt:number; hitAt:number; judged:boolean; hit:boolean };
+type Pulse = { sector:number; life:number; strength:number };
 
 export default function ObasSectorDefensePage() {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const audioRef = useRef<AudioContext | null>(null);
-  const gridRef = useRef<Grid>(starterGrid());
+  const canvasRef = useRef<HTMLCanvasElement|null>(null);
+  const notesRef = useRef<Note[]>([]);
+  const pulsesRef = useRef<Pulse[]>([]);
+  const nextIdRef = useRef(1);
+  const audioRef = useRef<AudioContext|null>(null);
   const runningRef = useRef(false);
-  const bpmRef = useRef(112);
   const startTimeRef = useRef(0);
-  const lastTriggeredRef = useRef(-1);
-  const phaseRef = useRef(0);
-  const dragPaintRef = useRef<boolean | null>(null);
-  const lastPaintCellRef = useRef('');
+  const nextStepRef = useRef(0);
 
-  const [gridVersion, setGridVersion] = useState(0);
-  const [running, setRunning] = useState(false);
-  const [bpm, setBpm] = useState(112);
-  const [status, setStatus] = useState('PAINT THE FIELD // PRESS PLAY');
-  const [step, setStep] = useState(0);
+  const [running,setRunning] = useState(false);
+  const [score,setScore] = useState(0);
+  const [combo,setCombo] = useState(0);
+  const [bestCombo,setBestCombo] = useState(0);
+  const [status,setStatus] = useState('PRESS START // THEN PLAY A S D F J K L ;');
+  const [lastKey,setLastKey] = useState('—');
+  const [accuracy,setAccuracy] = useState({perfect:0,good:0,miss:0});
 
   function ensureAudio() {
     if (!audioRef.current) {
@@ -50,321 +49,199 @@ export default function ObasSectorDefensePage() {
     return audioRef.current;
   }
 
-  function noiseBuffer(ctx: AudioContext, seconds: number) {
-    const buffer = ctx.createBuffer(1, Math.max(1, Math.floor(ctx.sampleRate * seconds)), ctx.sampleRate);
+  function noiseBuffer(ctx: AudioContext, seconds=0.18) {
+    const buffer = ctx.createBuffer(1, Math.floor(ctx.sampleRate*seconds), ctx.sampleRate);
     const data = buffer.getChannelData(0);
-    for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+    for (let i=0;i<data.length;i++) data[i]=Math.random()*2-1;
     return buffer;
   }
 
-  function playVoice(sector: number) {
-    const ctx = ensureAudio();
+  function playVoice(sector:number,strength=1) {
+    const ctx=ensureAudio();
     if (!ctx) return;
-    const now = ctx.currentTime;
-
-    if (sector === 0) {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(135, now);
-      osc.frequency.exponentialRampToValueAtTime(42, now + 0.16);
-      gain.gain.setValueAtTime(0.9, now);
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.2);
+    const now=ctx.currentTime;
+    const voice=VOICES[sector];
+    if (voice==='KICK') {
+      const osc=ctx.createOscillator(); const gain=ctx.createGain();
+      osc.type='sine';
+      osc.frequency.setValueAtTime(120,now);
+      osc.frequency.exponentialRampToValueAtTime(42,now+0.14);
+      gain.gain.setValueAtTime(0.0001,now);
+      gain.gain.exponentialRampToValueAtTime(0.85*strength,now+0.006);
+      gain.gain.exponentialRampToValueAtTime(0.0001,now+0.2);
       osc.connect(gain).connect(ctx.destination);
-      osc.start(now); osc.stop(now + 0.21);
-      return;
+      osc.start(now); osc.stop(now+0.22); return;
     }
-
-    if ([1, 2, 3, 4, 6].includes(sector)) {
-      const src = ctx.createBufferSource();
-      const filter = ctx.createBiquadFilter();
-      const gain = ctx.createGain();
-      const dur = sector === 2 ? 0.045 : sector === 3 ? 0.16 : 0.11;
-      src.buffer = noiseBuffer(ctx, dur);
-      filter.type = sector === 2 || sector === 3 ? 'highpass' : 'bandpass';
-      filter.frequency.value = sector === 2 ? 7000 : sector === 3 ? 5200 : sector === 1 ? 1700 : 1100 + sector * 180;
-      filter.Q.value = 0.9;
-      gain.gain.setValueAtTime(sector === 2 ? 0.24 : 0.42, now);
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
-      src.connect(filter).connect(gain).connect(ctx.destination);
-      src.start(now);
-      return;
+    if (voice==='SNARE'||voice==='CLAP'||voice==='HAT'||voice==='PERC') {
+      const src=ctx.createBufferSource(); const gain=ctx.createGain(); const filter=ctx.createBiquadFilter();
+      src.buffer=noiseBuffer(ctx,voice==='HAT'?0.06:0.16);
+      filter.type=voice==='HAT'?'highpass':'bandpass';
+      filter.frequency.value=voice==='HAT'?6200:voice==='CLAP'?1800:1200;
+      filter.Q.value=voice==='HAT'?0.7:1.1;
+      gain.gain.setValueAtTime(0.55*strength,now);
+      gain.gain.exponentialRampToValueAtTime(0.0001,now+(voice==='HAT'?0.055:0.16));
+      src.connect(filter).connect(gain).connect(ctx.destination); src.start(now); return;
     }
-
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = sector === 5 ? 'triangle' : 'square';
-    osc.frequency.setValueAtTime(sector === 5 ? 190 : 520, now);
-    osc.frequency.exponentialRampToValueAtTime(sector === 5 ? 88 : 160, now + 0.14);
-    gain.gain.setValueAtTime(sector === 5 ? 0.42 : 0.18, now);
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.18);
-    osc.connect(gain).connect(ctx.destination);
-    osc.start(now); osc.stop(now + 0.19);
+    const osc=ctx.createOscillator(); const gain=ctx.createGain();
+    osc.type='triangle';
+    osc.frequency.setValueAtTime(220+sector*34,now);
+    osc.frequency.exponentialRampToValueAtTime(95+sector*12,now+0.12);
+    gain.gain.setValueAtTime(0.4*strength,now);
+    gain.gain.exponentialRampToValueAtTime(0.0001,now+0.18);
+    osc.connect(gain).connect(ctx.destination); osc.start(now); osc.stop(now+0.2);
   }
 
-  function triggerStep(index: number) {
-    const voices = gridRef.current[index];
-    let count = 0;
-    voices.forEach((on, sector) => {
-      if (on) {
-        count += 1;
-        playVoice(sector);
-      }
-    });
-    setStep(index);
-    setStatus(count ? `STEP ${String(index + 1).padStart(2, '0')} // ${count} VOICE${count === 1 ? '' : 'S'}` : `STEP ${String(index + 1).padStart(2, '0')} // SILENCE`);
+  function spawnStep(stepIndex:number,now:number) {
+    for (const sector of PATTERN[stepIndex%PATTERN.length]) {
+      notesRef.current.push({id:nextIdRef.current++,sector,bornAt:now,hitAt:now+TRAVEL_MS,judged:false,hit:false});
+    }
+  }
+
+  function judgeSector(sector:number) {
+    if (!runningRef.current) return;
+    const now=performance.now();
+    setLastKey(LABELS[sector]);
+    let candidate:Note|null=null;
+    let delta=Infinity;
+    for (const note of notesRef.current) {
+      if (note.sector!==sector||note.judged) continue;
+      const d=Math.abs(note.hitAt-now);
+      if (d<delta) {delta=d;candidate=note;}
+    }
+    if (!candidate||delta>GOOD_WINDOW) {
+      setCombo(0); setStatus(`${LABELS[sector]} // EARLY OR LATE`);
+      pulsesRef.current.push({sector,life:1,strength:0.35}); return;
+    }
+    candidate.judged=true; candidate.hit=true;
+    const perfect=delta<=PERFECT_WINDOW;
+    setScore(v=>v+(perfect?150:80)+Math.min(200,(combo+1)*4));
+    setCombo(v=>{const n=v+1;setBestCombo(b=>Math.max(b,n));return n;});
+    setAccuracy(a=>perfect?{...a,perfect:a.perfect+1}:{...a,good:a.good+1});
+    setStatus(`${LABELS[sector]} // ${perfect?'PERFECT':'GOOD'} // ${VOICES[sector]}`);
+    pulsesRef.current.push({sector,life:1,strength:perfect?1:0.72});
+    playVoice(sector,perfect?1:0.8);
   }
 
   function toggleRun() {
     ensureAudio();
-    const next = !runningRef.current;
-    runningRef.current = next;
-    setRunning(next);
+    const next=!runningRef.current;
+    runningRef.current=next; setRunning(next);
     if (next) {
-      const stepMs = 60000 / bpmRef.current / 4;
-      startTimeRef.current = performance.now() - phaseRef.current * stepMs;
-      lastTriggeredRef.current = Math.floor(phaseRef.current) - 1;
-      setStatus('RUNNING // PAINT WHILE IT MOVES');
-    } else {
-      setStatus('PAUSED // PATTERN HELD');
-    }
+      const now=performance.now();
+      startTimeRef.current=now; nextStepRef.current=0;
+      notesRef.current=[]; pulsesRef.current=[];
+      setScore(0); setCombo(0); setAccuracy({perfect:0,good:0,miss:0});
+      setStatus('BEAT RUNNING // FOLLOW THE INCOMING TILES');
+    } else setStatus('PAUSED // SPACE OR START TO RESUME');
   }
 
-  function changeBpm(value: number) {
-    const next = Math.max(40, Math.min(220, value));
-    bpmRef.current = next;
-    setBpm(next);
-    if (runningRef.current) {
-      const stepMs = 60000 / next / 4;
-      startTimeRef.current = performance.now() - phaseRef.current * stepMs;
-      lastTriggeredRef.current = Math.floor(phaseRef.current) - 1;
-    }
-  }
-
-  function mutateGrid(mode: 'clear' | 'random') {
-    if (mode === 'clear') gridRef.current = blankGrid();
-    else {
-      const g = blankGrid();
-      for (let s = 0; s < STEPS; s++) {
-        for (let v = 0; v < SECTORS; v++) {
-          const density = v === 2 ? 0.36 : v < 2 ? 0.2 : 0.1;
-          g[s][v] = Math.random() < density;
-        }
-      }
-      gridRef.current = g;
-    }
-    setGridVersion((v) => v + 1);
-  }
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    let raf = 0;
-
-    const resize = () => {
-      const r = canvas.getBoundingClientRect();
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      canvas.width = Math.max(1, Math.floor(r.width * dpr));
-      canvas.height = Math.max(1, Math.floor(r.height * dpr));
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  useEffect(()=>{
+    const onKey=(event:KeyboardEvent)=>{
+      if (event.repeat) return;
+      if (event.code==='Space') {event.preventDefault();toggleRun();return;}
+      const sector=KEYS.indexOf(event.key.toLowerCase());
+      if (sector>=0) {event.preventDefault();judgeSector(sector);}
     };
-    resize();
-    const ro = new ResizeObserver(resize);
-    ro.observe(canvas);
+    window.addEventListener('keydown',onKey);
+    return()=>window.removeEventListener('keydown',onKey);
+  },[]);
 
-    const geometry = () => {
-      const w = canvas.clientWidth;
-      const h = canvas.clientHeight;
-      const cx = w / 2;
-      const cy = h / 2;
-      const outer = Math.max(150, Math.min(w, h) * 0.45);
-      const inner = Math.max(38, outer * 0.13);
-      return { w, h, cx, cy, outer, inner, wedge: Math.PI * 2 / SECTORS };
+  useEffect(()=>{
+    const canvas=canvasRef.current; if (!canvas) return;
+    const ctx=canvas.getContext('2d'); if (!ctx) return;
+    let raf=0,last=performance.now();
+    const resize=()=>{
+      const r=canvas.getBoundingClientRect(); const dpr=Math.min(window.devicePixelRatio||1,2);
+      canvas.width=Math.max(1,Math.floor(r.width*dpr)); canvas.height=Math.max(1,Math.floor(r.height*dpr));
+      ctx.setTransform(dpr,0,0,dpr,0,0);
     };
+    resize(); const ro=new ResizeObserver(resize); ro.observe(canvas);
 
-    const ringRadius = (stepIndex: number, stepFloat: number, inner: number, outer: number) => {
-      const delta = ((stepIndex - stepFloat) % STEPS + STEPS) % STEPS;
-      return inner + (delta / (STEPS - 1)) * (outer - inner);
-    };
+    const draw=(now:number)=>{
+      const dt=Math.min(50,now-last); last=now;
+      const w=canvas.clientWidth,h=canvas.clientHeight,cx=w/2,cy=h/2;
+      const radius=Math.max(150,Math.min(w,h)*0.44),wedge=Math.PI*2/SECTORS;
+      ctx.fillStyle='#050505'; ctx.fillRect(0,0,w,h);
 
-    const paintFromPointer = (event: PointerEvent, first = false) => {
-      const r = canvas.getBoundingClientRect();
-      const x = event.clientX - r.left;
-      const y = event.clientY - r.top;
-      const { cx, cy, outer, inner, wedge } = geometry();
-      const dx = x - cx;
-      const dy = y - cy;
-      const radial = Math.sqrt(dx * dx + dy * dy);
-      if (radial < inner * 0.72 || radial > outer + 14) return;
-
-      let angle = Math.atan2(dy, dx) + Math.PI / 2;
-      if (angle < 0) angle += Math.PI * 2;
-      const sector = Math.min(SECTORS - 1, Math.floor(angle / wedge));
-      const stepFloat = phaseRef.current;
-      let bestStep = 0;
-      let bestDistance = Infinity;
-      for (let s = 0; s < STEPS; s++) {
-        const rr = ringRadius(s, stepFloat, inner, outer);
-        const d = Math.abs(rr - radial);
-        if (d < bestDistance) { bestDistance = d; bestStep = s; }
-      }
-      if (bestDistance > Math.max(16, (outer - inner) / STEPS * 0.7)) return;
-
-      const key = `${bestStep}:${sector}`;
-      if (key === lastPaintCellRef.current && !first) return;
-      lastPaintCellRef.current = key;
-
-      if (first || dragPaintRef.current === null) dragPaintRef.current = !gridRef.current[bestStep][sector];
-      gridRef.current[bestStep][sector] = Boolean(dragPaintRef.current);
-      setGridVersion((v) => v + 1);
-      if (dragPaintRef.current) playVoice(sector);
-    };
-
-    const onDown = (event: PointerEvent) => {
-      canvas.setPointerCapture(event.pointerId);
-      dragPaintRef.current = null;
-      lastPaintCellRef.current = '';
-      paintFromPointer(event, true);
-    };
-    const onMove = (event: PointerEvent) => {
-      if (!canvas.hasPointerCapture(event.pointerId)) return;
-      paintFromPointer(event, false);
-    };
-    const onUp = (event: PointerEvent) => {
-      if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
-      dragPaintRef.current = null;
-      lastPaintCellRef.current = '';
-    };
-
-    canvas.addEventListener('pointerdown', onDown);
-    canvas.addEventListener('pointermove', onMove);
-    canvas.addEventListener('pointerup', onUp);
-    canvas.addEventListener('pointercancel', onUp);
-
-    const draw = (now: number) => {
-      const { w, h, cx, cy, outer, inner, wedge } = geometry();
-      ctx.fillStyle = '#050505';
-      ctx.fillRect(0, 0, w, h);
-
-      const stepMs = 60000 / bpmRef.current / 4;
-      if (runningRef.current) phaseRef.current = (now - startTimeRef.current) / stepMs;
-      const stepFloat = phaseRef.current;
-      const absoluteStep = Math.floor(stepFloat);
-
-      if (runningRef.current && absoluteStep > lastTriggeredRef.current) {
-        while (lastTriggeredRef.current < absoluteStep) {
-          lastTriggeredRef.current += 1;
-          triggerStep(((lastTriggeredRef.current % STEPS) + STEPS) % STEPS);
+      if (runningRef.current) {
+        const elapsed=now-startTimeRef.current;
+        const targetStep=Math.floor(elapsed/STEP_MS)+Math.ceil(TRAVEL_MS/STEP_MS);
+        while (nextStepRef.current<=targetStep) {
+          const born=startTimeRef.current+nextStepRef.current*STEP_MS-TRAVEL_MS;
+          if (born<=now) spawnStep(nextStepRef.current,born);
+          nextStepRef.current++;
         }
       }
 
-      for (let s = 0; s < SECTORS; s++) {
-        const a0 = -Math.PI / 2 + s * wedge;
-        const a1 = a0 + wedge;
-        const am = (a0 + a1) / 2;
-        ctx.beginPath();
-        ctx.moveTo(cx, cy);
-        ctx.lineTo(cx + Math.cos(a0) * outer, cy + Math.sin(a0) * outer);
-        ctx.strokeStyle = 'rgba(255,255,255,.12)';
-        ctx.lineWidth = 1;
-        ctx.stroke();
-        ctx.fillStyle = COLORS[s];
-        ctx.font = '700 11px ui-monospace, monospace';
-        ctx.textAlign = 'center';
-        ctx.fillText(VOICES[s], cx + Math.cos(am) * (outer + 26), cy + Math.sin(am) * (outer + 26));
+      for (let i=0;i<SECTORS;i++) {
+        const a0=-Math.PI/2+i*wedge,a1=a0+wedge,am=(a0+a1)/2;
+        ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,radius,a0,a1);ctx.closePath();
+        ctx.strokeStyle='rgba(218,255,0,.15)';ctx.lineWidth=1;ctx.stroke();
+        ctx.fillStyle='rgba(218,255,0,.78)';ctx.font='700 15px ui-monospace, monospace';ctx.textAlign='center';
+        ctx.fillText(LABELS[i],cx+Math.cos(am)*(radius-20),cy+Math.sin(am)*(radius-20));
+        ctx.font='10px ui-monospace, monospace';ctx.fillStyle='rgba(255,255,255,.42)';
+        ctx.fillText(VOICES[i],cx+Math.cos(am)*(radius-42),cy+Math.sin(am)*(radius-42));
       }
 
-      for (let s = 0; s < STEPS; s++) {
-        const rr = ringRadius(s, stepFloat, inner, outer);
-        const downbeat = s % 4 === 0;
-        ctx.beginPath();
-        ctx.arc(cx, cy, rr, 0, Math.PI * 2);
-        ctx.strokeStyle = downbeat ? 'rgba(218,255,0,.34)' : 'rgba(255,255,255,.12)';
-        ctx.lineWidth = downbeat ? 1.6 : 1;
-        ctx.stroke();
+      ctx.beginPath();ctx.arc(cx,cy,HIT_RADIUS,0,Math.PI*2);ctx.strokeStyle='#daff00';ctx.lineWidth=2;ctx.stroke();
+      ctx.beginPath();ctx.arc(cx,cy,HIT_RADIUS+12,0,Math.PI*2);ctx.strokeStyle='rgba(218,255,0,.28)';ctx.lineWidth=1;ctx.stroke();
 
-        for (let sector = 0; sector < SECTORS; sector++) {
-          if (!gridRef.current[s][sector]) continue;
-          const a0 = -Math.PI / 2 + sector * wedge + 0.025;
-          const a1 = a0 + wedge - 0.05;
-          const band = Math.max(5, (outer - inner) / STEPS * 0.34);
-          ctx.beginPath();
-          ctx.arc(cx, cy, rr + band, a0, a1);
-          ctx.arc(cx, cy, Math.max(inner * 0.7, rr - band), a1, a0, true);
-          ctx.closePath();
-          ctx.fillStyle = COLORS[sector];
-          ctx.globalAlpha = rr < inner + 16 ? 1 : 0.82;
-          ctx.fill();
-          ctx.globalAlpha = 1;
+      const survivors:Note[]=[];
+      for (const note of notesRef.current) {
+        const remaining=note.hitAt-now;
+        if (!note.judged&&remaining<-GOOD_WINDOW) {
+          note.judged=true; setCombo(0); setAccuracy(a=>({...a,miss:a.miss+1})); setStatus(`${LABELS[note.sector]} // MISS`);
         }
+        if (note.judged&&remaining<-300) continue;
+        survivors.push(note);
+        const progress=Math.max(0,Math.min(1,1-remaining/TRAVEL_MS));
+        const r=radius-34-progress*(radius-34-HIT_RADIUS);
+        const am=-Math.PI/2+(note.sector+0.5)*wedge;
+        const x=cx+Math.cos(am)*r,y=cy+Math.sin(am)*r,size=9+progress*8;
+        ctx.save();ctx.translate(Math.round(x),Math.round(y));ctx.rotate(am+Math.PI/4);
+        ctx.fillStyle=note.hit?'rgba(218,255,0,.18)':'#daff00';ctx.fillRect(-size/2,-size/2,size,size);
+        if (!note.hit) {ctx.fillStyle='#050505';ctx.fillRect(-2.5,-2.5,5,5);} ctx.restore();
       }
+      notesRef.current=survivors;
 
-      ctx.beginPath();
-      ctx.arc(cx, cy, inner, 0, Math.PI * 2);
-      ctx.fillStyle = '#050505';
-      ctx.fill();
-      ctx.strokeStyle = '#daff00';
-      ctx.lineWidth = 3;
-      ctx.stroke();
+      pulsesRef.current=pulsesRef.current.filter(p=>{
+        p.life-=dt*0.006;if (p.life<=0) return false;
+        const a0=-Math.PI/2+p.sector*wedge,a1=a0+wedge;
+        ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,HIT_RADIUS+38*(1-p.life),a0,a1);ctx.closePath();
+        ctx.fillStyle=`rgba(218,255,0,${p.life*0.5*p.strength})`;ctx.fill();return true;
+      });
 
-      const pulse = runningRef.current ? 1 - (stepFloat - Math.floor(stepFloat)) : 0;
-      ctx.beginPath();
-      ctx.arc(cx, cy, Math.max(8, inner * 0.34 + pulse * 5), 0, Math.PI * 2);
-      ctx.fillStyle = '#daff00';
-      ctx.fill();
-
-      ctx.fillStyle = 'rgba(255,255,255,.55)';
-      ctx.font = '10px ui-monospace, monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText(`${Math.round(bpmRef.current)} BPM`, cx, cy + 3);
-
-      raf = requestAnimationFrame(draw);
+      const beatPhase=((now-startTimeRef.current)%STEP_MS)/STEP_MS;
+      ctx.beginPath();ctx.arc(cx,cy,18+(runningRef.current?(1-beatPhase)*8:0),0,Math.PI*2);ctx.fillStyle='#daff00';ctx.fill();
+      ctx.beginPath();ctx.arc(cx,cy,6,0,Math.PI*2);ctx.fillStyle='#050505';ctx.fill();
+      raf=requestAnimationFrame(draw);
     };
+    raf=requestAnimationFrame(draw);
+    return()=>{cancelAnimationFrame(raf);ro.disconnect();};
+  },[]);
 
-    raf = requestAnimationFrame(draw);
-    return () => {
-      cancelAnimationFrame(raf);
-      ro.disconnect();
-      canvas.removeEventListener('pointerdown', onDown);
-      canvas.removeEventListener('pointermove', onMove);
-      canvas.removeEventListener('pointerup', onUp);
-      canvas.removeEventListener('pointercancel', onUp);
-    };
-  }, [gridVersion]);
+  const total=accuracy.perfect+accuracy.good+accuracy.miss;
+  const hitPct=total?Math.round(((accuracy.perfect+accuracy.good)/total)*100):100;
 
   return (
-    <main style={{ minHeight: '100vh', background: '#050505', color: '#daff00', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', padding: 18 }}>
-      <div style={{ maxWidth: 1180, margin: '0 auto' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', marginBottom: 12, fontSize: 12, letterSpacing: '.12em' }}>
-          <span>HARIL OS // OBAS POLAR SEQUENCER</span>
-          <span>STEP {String(step + 1).padStart(2, '0')} / {STEPS}</span>
+    <main style={{minHeight:'100vh',background:'#050505',color:'#daff00',fontFamily:'ui-monospace, SFMono-Regular, Menlo, monospace',padding:18}}>
+      <div style={{maxWidth:1180,margin:'0 auto'}}>
+        <div style={{display:'flex',justifyContent:'space-between',gap:16,flexWrap:'wrap',marginBottom:12,fontSize:12,letterSpacing:'.12em'}}>
+          <span>HARIL OS // OBAS BEAT DEFENSE</span>
+          <span>SCORE {String(score).padStart(6,'0')} // COMBO {combo} // BEST {bestCombo}</span>
         </div>
-
-        <div style={{ border: '1px solid #313131', background: '#000' }}>
-          <canvas ref={canvasRef} style={{ width: '100%', height: 'min(74vw, 760px)', minHeight: 520, display: 'block', touchAction: 'none', cursor: 'crosshair' }} />
+        <div style={{border:'1px solid #313131',background:'#000'}}>
+          <canvas ref={canvasRef} style={{width:'100%',height:'min(68vw,680px)',minHeight:420,display:'block'}} />
         </div>
-
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginTop: 12 }}>
-          <button onClick={toggleRun} style={{ minHeight: 46, padding: '0 18px', border: '1px solid #daff00', background: running ? '#daff00' : '#050505', color: running ? '#050505' : '#daff00', font: 'inherit', cursor: 'pointer' }}>
-            {running ? 'PAUSE' : 'PLAY'}
-          </button>
-          <button onClick={() => mutateGrid('clear')} style={{ minHeight: 46, padding: '0 16px', border: '1px solid #555', background: '#050505', color: '#eee', font: 'inherit', cursor: 'pointer' }}>CLEAR</button>
-          <button onClick={() => mutateGrid('random')} style={{ minHeight: 46, padding: '0 16px', border: '1px solid #555', background: '#050505', color: '#eee', font: 'inherit', cursor: 'pointer' }}>MUTATE</button>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 10, minHeight: 46, padding: '0 12px', border: '1px solid #313131', color: '#eee', fontSize: 12 }}>
-            BPM
-            <input type="range" min="40" max="220" value={bpm} onChange={(e) => changeBpm(Number(e.target.value))} style={{ width: 150 }} />
-            <strong style={{ color: '#daff00', minWidth: 34 }}>{bpm}</strong>
-          </label>
-          <div style={{ flex: '1 1 280px', minHeight: 46, border: '1px solid #313131', display: 'flex', alignItems: 'center', padding: '0 14px', color: '#eee', fontSize: 12 }}>
-            {status}
-          </div>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(8,minmax(44px,1fr))',gap:8,marginTop:10}}>
+          {LABELS.map((label,i)=><button key={label} onClick={()=>judgeSector(i)} style={{minHeight:44,border:'1px solid #daff00',background:'#050505',color:'#daff00',font:'inherit',cursor:'pointer'}}>{label}</button>)}
         </div>
-
-        <p style={{ color: '#8c8c8c', fontSize: 12, lineHeight: 1.55, marginTop: 10 }}>
-          Paint directly into the moving polar grid. Pie slices are voices; concentric circles are 16th-note steps. Rings travel inward at the selected BPM. When a painted cell reaches the center ring, that voice sounds. Drag across the field to draw rhythmic shapes while the sequence is running.
-        </p>
+        <div style={{display:'flex',gap:10,flexWrap:'wrap',marginTop:10,alignItems:'center'}}>
+          <button onClick={toggleRun} style={{minHeight:46,padding:'0 18px',border:'1px solid #daff00',background:running?'#daff00':'#050505',color:running?'#050505':'#daff00',font:'inherit',cursor:'pointer'}}>{running?'PAUSE':'START'}</button>
+          <div style={{border:'1px solid #313131',padding:'13px 14px',color:'#eee',fontSize:12}}>LAST {lastKey} // HIT {hitPct}%</div>
+          <div style={{flex:'1 1 280px',minHeight:46,border:'1px solid #313131',display:'flex',alignItems:'center',padding:'0 14px',color:'#eee',fontSize:12}}>{status}</div>
+        </div>
+        <p style={{color:'#8c8c8c',fontSize:12,lineHeight:1.5,marginTop:10}}>Press A S D F J K L ; as incoming tiles reach the center ring. SPACE starts or pauses the beat run.</p>
       </div>
     </main>
   );
