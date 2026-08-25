@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>HARIL OS // OBAS Sector Defense</title>
+<style>
+:root{color-scheme:dark;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;background:#050505;color:#f3eee3}
+*{box-sizing:border-box}body{margin:0;background:#050505;color:#f3eee3}.wrap{min-height:100vh;display:grid;grid-template-rows:auto 1fr auto}.top{display:flex;justify-content:space-between;gap:16px;align-items:center;padding:14px 18px;border-bottom:1px solid #2c2c2c;font-size:12px;letter-spacing:.12em;text-transform:uppercase}.hud{display:flex;gap:16px;flex-wrap:wrap}.stage{position:relative;min-height:640px}.stage canvas{display:block;width:100%;height:100%;min-height:640px}.controls{display:flex;gap:10px;flex-wrap:wrap;padding:14px 18px;border-top:1px solid #2c2c2c;align-items:center}.controls button{background:#111;color:#f3eee3;border:1px solid #555;padding:10px 14px;min-height:42px;font:inherit;cursor:pointer}.controls button:hover{background:#1c1c1c}.controls button:focus-visible{outline:2px solid #f3eee3;outline-offset:2px}.status{margin-left:auto;min-width:220px;text-align:right;font-size:12px;opacity:.75}.sector-key{position:absolute;inset:0;pointer-events:none}.sector-label{position:absolute;font-size:11px;letter-spacing:.14em;text-transform:uppercase;opacity:.42;transform:translate(-50%,-50%)}.flash{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:14px;letter-spacing:.16em;text-transform:uppercase;opacity:0;transition:opacity .12s}.flash.show{opacity:1}.help{position:absolute;left:16px;bottom:16px;max-width:360px;font-size:11px;line-height:1.45;opacity:.55}
+@media(max-width:700px){.stage,.stage canvas{min-height:520px}.status{width:100%;margin-left:0;text-align:left}.top{align-items:flex-start}.hud{gap:8px 12px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="top"><div>HARIL OS // OBAS SECTOR DEFENSE</div><div class="hud"><span id="score">SCORE 0000</span><span id="lives">CORE 3</span><span id="level">WAVE 1</span></div></header>
+<main class="stage" id="stage">
+<canvas id="game" aria-label="Voice controlled radial sector defense game"></canvas>
+<div class="sector-key" id="labels"></div>
+<div class="flash" id="flash">SECTOR 1</div>
+<div class="help">Call out “SECTOR ONE” through “SECTOR EIGHT”. A wedge laser fires from the central OBAS core and clears invaders in that radial sector. If voice recognition is unavailable, use the numbered buttons below.</div>
+</main>
+<footer class="controls">
+<button id="voiceBtn" type="button">ENABLE VOICE</button>
+<button data-sector="1" type="button">1</button><button data-sector="2" type="button">2</button><button data-sector="3" type="button">3</button><button data-sector="4" type="button">4</button><button data-sector="5" type="button">5</button><button data-sector="6" type="button">6</button><button data-sector="7" type="button">7</button><button data-sector="8" type="button">8</button>
+<button id="resetBtn" type="button">RESET</button>
+<div class="status" id="status" aria-live="polite">Voice idle</div>
+</footer>
+</div>
+<script>
+(()=>{
+const canvas=document.getElementById('game'); const ctx=canvas.getContext('2d'); const stage=document.getElementById('stage');
+const scoreEl=document.getElementById('score'), livesEl=document.getElementById('lives'), levelEl=document.getElementById('level'), statusEl=document.getElementById('status'), flash=document.getElementById('flash'), labels=document.getElementById('labels');
+let W=0,H=0,DPR=1,cx=0,cy=0,score=0,lives=3,wave=1,last=performance.now(),spawnT=0,fire=null,gameOver=false; const inv=[]; const particles=[];
+const sectorCount=8, TAU=Math.PI*2, sectorSize=TAU/sectorCount;
+function resize(){const r=stage.getBoundingClientRect();DPR=Math.min(devicePixelRatio||1,2);W=Math.max(320,r.width);H=Math.max(420,r.height);canvas.width=W*DPR;canvas.height=H*DPR;canvas.style.width=W+'px';canvas.style.height=H+'px';ctx.setTransform(DPR,0,0,DPR,0,0);cx=W/2;cy=H/2;placeLabels();}
+function placeLabels(){labels.innerHTML='';const rad=Math.min(W,H)*.40;for(let s=1;s<=8;s++){const a=-Math.PI/2+(s-.5)*sectorSize;const el=document.createElement('div');el.className='sector-label';el.textContent='S'+s;el.style.left=(cx+Math.cos(a)*rad)+'px';el.style.top=(cy+Math.sin(a)*rad)+'px';labels.appendChild(el)}}
+new ResizeObserver(resize).observe(stage);resize();
+function sectorOfAngle(a){let x=(a+Math.PI/2)%TAU;if(x<0)x+=TAU;return Math.floor(x/sectorSize)+1}
+function sectorBounds(s){const a0=-Math.PI/2+(s-1)*sectorSize;return[a0,a0+sectorSize]}
+function spawn(){const s=1+Math.floor(Math.random()*8);const [a0,a1]=sectorBounds(s);const a=a0+.16*sectorSize+Math.random()*.68*sectorSize;const maxR=Math.hypot(W,H)*.58;inv.push({a,r:maxR+20,size:8+Math.random()*8,speed:18+wave*2+Math.random()*12,wob:Math.random()*6,phase:Math.random()*TAU});}
+function explode(x,y){for(let i=0;i<12;i++){const a=Math.random()*TAU;particles.push({x,y,vx:Math.cos(a)*(40+Math.random()*90),vy:Math.sin(a)*(40+Math.random()*90),life:1});}}
+function fireSector(s){if(gameOver)return;fire={s,t:0,dur:.24};flash.textContent='SECTOR '+s;flash.classList.add('show');setTimeout(()=>flash.classList.remove('show'),120);let hits=0;for(let i=inv.length-1;i>=0;i--){if(sectorOfAngle(inv[i].a)===s){const x=cx+Math.cos(inv[i].a)*inv[i].r,y=cy+Math.sin(inv[i].a)*inv[i].r;explode(x,y);inv.splice(i,1);hits++;}}score+=hits*100;scoreEl.textContent='SCORE '+String(score).padStart(4,'0');statusEl.textContent=hits?`Sector ${s}: ${hits} hit${hits===1?'':'s'}`:`Sector ${s}: clear`;}
+function drawGrid(){ctx.save();ctx.translate(cx,cy);ctx.strokeStyle='rgba(243,238,227,.12)';ctx.lineWidth=1;const R=Math.hypot(W,H)*.6;for(let s=0;s<8;s++){const a=-Math.PI/2+s*sectorSize;ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(Math.cos(a)*R,Math.sin(a)*R);ctx.stroke();}for(let r=90;r<R;r+=90){ctx.beginPath();ctx.arc(0,0,r,0,TAU);ctx.stroke()}ctx.restore();}
+function drawCore(t){const pulse=12+Math.sin(t*.004)*2;ctx.save();ctx.translate(cx,cy);ctx.fillStyle='#f3eee3';ctx.beginPath();ctx.arc(0,0,pulse,0,TAU);ctx.fill();ctx.strokeStyle='rgba(243,238,227,.35)';ctx.beginPath();ctx.arc(0,0,pulse+8,0,TAU);ctx.stroke();ctx.restore();}
+function drawFire(){if(!fire)return;const [a0,a1]=sectorBounds(fire.s);const R=Math.hypot(W,H);const alpha=Math.max(0,1-fire.t/fire.dur);ctx.save();ctx.translate(cx,cy);const grad=ctx.createRadialGradient(0,0,0,0,0,R*.75);grad.addColorStop(0,`rgba(243,238,227,${.75*alpha})`);grad.addColorStop(1,`rgba(243,238,227,0)`);ctx.fillStyle=grad;ctx.beginPath();ctx.moveTo(0,0);ctx.arc(0,0,R,a0,a1);ctx.closePath();ctx.fill();ctx.strokeStyle=`rgba(243,238,227,${alpha})`;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(Math.cos((a0+a1)/2)*R,Math.sin((a0+a1)/2)*R);ctx.stroke();ctx.restore();}
+function loop(now){const dt=Math.min(.05,(now-last)/1000);last=now;if(!gameOver){spawnT-=dt;if(spawnT<=0){spawn();spawnT=Math.max(.28,1.05-wave*.07)+Math.random()*.45;}for(let i=inv.length-1;i>=0;i--){const o=inv[i];o.r-=o.speed*dt;o.a+=Math.sin(now*.001+o.phase)*.0006;const x=cx+Math.cos(o.a)*o.r,y=cy+Math.sin(o.a)*o.r;if(o.r<24){inv.splice(i,1);lives--;livesEl.textContent='CORE '+lives;if(lives<=0){gameOver=true;statusEl.textContent='CORE LOST — reset to continue';}continue;}ctx.save();ctx.translate(x,y);ctx.rotate(o.a+Math.PI/2);ctx.strokeStyle='#f3eee3';ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(-o.size,0);ctx.lineTo(0,-o.size*.7);ctx.lineTo(o.size,0);ctx.lineTo(0,o.size*.7);ctx.closePath();ctx.stroke();ctx.restore();}}
+ctx.clearRect(0,0,W,H);ctx.fillStyle='#050505';ctx.fillRect(0,0,W,H);drawGrid();drawFire();for(const o of inv){const x=cx+Math.cos(o.a)*o.r,y=cy+Math.sin(o.a)*o.r;ctx.save();ctx.translate(x,y);ctx.rotate(o.a+Math.PI/2);ctx.strokeStyle='#f3eee3';ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(-o.size,0);ctx.lineTo(0,-o.size*.7);ctx.lineTo(o.size,0);ctx.lineTo(0,o.size*.7);ctx.closePath();ctx.stroke();ctx.restore();}
+for(let i=particles.length-1;i>=0;i--){const p=particles[i];p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt*2.2;ctx.fillStyle=`rgba(243,238,227,${Math.max(0,p.life)})`;ctx.fillRect(p.x,p.y,2,2);if(p.life<=0)particles.splice(i,1);}drawCore(now);if(fire){fire.t+=dt;if(fire.t>=fire.dur)fire=null;}requestAnimationFrame(loop)}requestAnimationFrame(loop);
+function reset(){score=0;lives=3;wave=1;gameOver=false;inv.length=0;particles.length=0;scoreEl.textContent='SCORE 0000';livesEl.textContent='CORE 3';levelEl.textContent='WAVE 1';statusEl.textContent='Ready';}
+document.querySelectorAll('[data-sector]').forEach(b=>b.addEventListener('click',()=>fireSector(Number(b.dataset.sector))));document.getElementById('resetBtn').addEventListener('click',reset);
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;let rec=null,voiceOn=false;const words={one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,'1':1,'2':2,'3':3,'4':4,'5':5,'6':6,'7':7,'8':8};
+function parseSector(text){const low=text.toLowerCase().replace(/[^a-z0-9 ]/g,' ');for(const [k,v] of Object.entries(words)){if(new RegExp('\\b'+k+'\\b').test(low))return v;}return null;}
+const voiceBtn=document.getElementById('voiceBtn');voiceBtn.addEventListener('click',()=>{if(!SR){statusEl.textContent='Voice recognition unavailable in this browser';return;}if(voiceOn){voiceOn=false;rec.stop();voiceBtn.textContent='ENABLE VOICE';statusEl.textContent='Voice idle';return;}rec=new SR();rec.continuous=true;rec.interimResults=false;rec.lang='en-US';rec.onresult=e=>{const text=e.results[e.results.length-1][0].transcript;const s=parseSector(text);statusEl.textContent='Heard: “'+text.trim()+'”'+(s?' → sector '+s:'');if(s)fireSector(s);};rec.onerror=e=>{statusEl.textContent='Voice error: '+e.error;};rec.onend=()=>{if(voiceOn){try{rec.start()}catch{}}};voiceOn=true;voiceBtn.textContent='VOICE ON';statusEl.textContent='Listening for sector calls';rec.start();});
+})();
+</script>
+</body>
+</html>
