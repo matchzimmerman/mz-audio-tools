@@ -12,9 +12,14 @@ type Invader = { id: number; sector: number; r: number; speed: number; wobble: n
 type Blast = { sector: number; life: number };
 
 function parseSector(text: string) {
-  const t = text.toLowerCase();
+  const t = text.toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
   for (const [word, n] of Object.entries(WORDS)) {
-    if (t.includes(`sector ${word}`) || t.includes(`sector ${n}`) || t.trim() === word || t.trim() === String(n)) return n;
+    if (
+      t.includes(`sector ${word}`) ||
+      t.includes(`sector ${n}`) ||
+      t === word ||
+      t === String(n)
+    ) return n;
   }
   return null;
 }
@@ -24,6 +29,9 @@ export default function ObasSectorDefensePage() {
   const invadersRef = useRef<Invader[]>([]);
   const blastsRef = useRef<Blast[]>([]);
   const nextIdRef = useRef(1);
+  const recognitionRef = useRef<any>(null);
+  const shouldListenRef = useRef(false);
+
   const [score, setScore] = useState(0);
   const [core, setCore] = useState(100);
   const [heard, setHeard] = useState('VOICE OFFLINE');
@@ -43,38 +51,89 @@ export default function ObasSectorDefensePage() {
   }
 
   useEffect(() => {
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) { setSupported(false); return; }
-    const recognition = new SpeechRecognition();
+    const Recognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!Recognition) {
+      setSupported(false);
+      setHeard('VOICE UNSUPPORTED IN THIS BROWSER');
+      return;
+    }
+
+    const recognition = new Recognition();
     recognition.continuous = true;
     recognition.interimResults = true;
     recognition.lang = 'en-US';
+
+    recognition.onstart = () => {
+      setListening(true);
+      setHeard('LISTENING // SAY “SECTOR THREE”');
+    };
+
     recognition.onresult = (event: any) => {
-      const result = event.results[event.results.length - 1];
-      const text = result?.[0]?.transcript || '';
-      setHeard(text.toUpperCase());
-      if (result?.isFinal) {
-        const sector = parseSector(text);
+      let transcript = '';
+      let finalTranscript = '';
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const chunk = event.results[i]?.[0]?.transcript || '';
+        transcript += chunk;
+        if (event.results[i]?.isFinal) finalTranscript += chunk;
+      }
+
+      if (transcript.trim()) setHeard(transcript.trim().toUpperCase());
+
+      if (finalTranscript.trim()) {
+        const sector = parseSector(finalTranscript);
         if (sector) fireSector(sector);
+        else setHeard(`${finalTranscript.trim().toUpperCase()} // NO SECTOR MATCH`);
       }
     };
+
+    recognition.onerror = (event: any) => {
+      const code = String(event?.error || 'unknown').toUpperCase();
+      setHeard(`VOICE ERROR // ${code}`);
+      if (code === 'NOT-ALLOWED' || code === 'SERVICE-NOT-ALLOWED') {
+        shouldListenRef.current = false;
+        setListening(false);
+      }
+    };
+
     recognition.onend = () => {
-      if (listening) {
-        try { recognition.start(); } catch {}
+      setListening(false);
+      if (shouldListenRef.current) {
+        window.setTimeout(() => {
+          if (!shouldListenRef.current) return;
+          try { recognition.start(); } catch {}
+        }, 180);
       }
     };
-    (window as any).__obasRecognition = recognition;
-    return () => { try { recognition.stop(); } catch {} };
-  }, [listening]);
+
+    recognitionRef.current = recognition;
+
+    return () => {
+      shouldListenRef.current = false;
+      recognitionRef.current = null;
+      try { recognition.abort(); } catch {}
+    };
+  }, []);
 
   function toggleVoice() {
-    const recognition = (window as any).__obasRecognition;
-    if (!recognition) return;
-    if (!listening) {
-      try { recognition.start(); setListening(true); setHeard('LISTENING // SAY “SECTOR THREE”'); } catch {}
+    const recognition = recognitionRef.current;
+    if (!recognition) {
+      setHeard('VOICE ENGINE NOT READY');
+      return;
+    }
+
+    if (!shouldListenRef.current) {
+      shouldListenRef.current = true;
+      setHeard('REQUESTING MICROPHONE // SAY “SECTOR THREE”');
+      try {
+        recognition.start();
+      } catch (err: any) {
+        setHeard(`VOICE START ERROR // ${String(err?.message || err).toUpperCase()}`);
+      }
     } else {
+      shouldListenRef.current = false;
+      setListening(false);
       try { recognition.stop(); } catch {}
-      setListening(false); setHeard('VOICE OFFLINE');
+      setHeard('VOICE OFFLINE');
     }
   }
 
@@ -94,25 +153,38 @@ export default function ObasSectorDefensePage() {
       canvas.height = Math.max(1, Math.floor(r.height * dpr));
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     };
+
     resize();
     const ro = new ResizeObserver(resize);
     ro.observe(canvas);
 
     const draw = (now: number) => {
-      const dt = Math.min(40, now - last); last = now;
-      const w = canvas.clientWidth, h = canvas.clientHeight;
-      const cx = w / 2, cy = h / 2;
+      const dt = Math.min(40, now - last);
+      last = now;
+      const w = canvas.clientWidth;
+      const h = canvas.clientHeight;
+      const cx = w / 2;
+      const cy = h / 2;
       const radius = Math.max(100, Math.min(w, h) * 0.44);
-      ctx.fillStyle = '#050505'; ctx.fillRect(0, 0, w, h);
 
-      // sector wedges + labels
+      ctx.fillStyle = '#050505';
+      ctx.fillRect(0, 0, w, h);
+
       for (let i = 0; i < SECTORS; i++) {
         const a0 = -Math.PI / 2 + i * (Math.PI * 2 / SECTORS);
         const a1 = a0 + Math.PI * 2 / SECTORS;
-        ctx.beginPath(); ctx.moveTo(cx, cy); ctx.arc(cx, cy, radius, a0, a1); ctx.closePath();
-        ctx.strokeStyle = 'rgba(218,255,0,.16)'; ctx.lineWidth = 1; ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.arc(cx, cy, radius, a0, a1);
+        ctx.closePath();
+        ctx.strokeStyle = 'rgba(218,255,0,.16)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
         const am = (a0 + a1) / 2;
-        ctx.fillStyle = 'rgba(218,255,0,.72)'; ctx.font = '11px monospace'; ctx.textAlign = 'center';
+        ctx.fillStyle = 'rgba(218,255,0,.72)';
+        ctx.font = '11px monospace';
+        ctx.textAlign = 'center';
         ctx.fillText(`S${i + 1}`, cx + Math.cos(am) * (radius - 18), cy + Math.sin(am) * (radius - 18));
       }
 
@@ -120,7 +192,13 @@ export default function ObasSectorDefensePage() {
         spawnClock += dt;
         if (spawnClock > 820) {
           spawnClock = 0;
-          invadersRef.current.push({ id: nextIdRef.current++, sector: 1 + Math.floor(Math.random() * SECTORS), r: radius - 20, speed: 0.025 + Math.random() * 0.018, wobble: Math.random() * 6.28 });
+          invadersRef.current.push({
+            id: nextIdRef.current++,
+            sector: 1 + Math.floor(Math.random() * SECTORS),
+            r: radius - 20,
+            speed: 0.025 + Math.random() * 0.018,
+            wobble: Math.random() * Math.PI * 2,
+          });
         }
       }
 
@@ -128,7 +206,10 @@ export default function ObasSectorDefensePage() {
       for (const inv of invadersRef.current) {
         inv.r -= inv.speed * dt;
         inv.wobble += dt * 0.003;
-        if (inv.r < 34) { setCore((v) => Math.max(0, v - 8)); continue; }
+        if (inv.r < 34) {
+          setCore((v) => Math.max(0, v - 8));
+          continue;
+        }
         survivors.push(inv);
         const am = -Math.PI / 2 + (inv.sector - 0.5) * (Math.PI * 2 / SECTORS);
         const drift = Math.sin(inv.wobble) * 0.05;
@@ -146,18 +227,32 @@ export default function ObasSectorDefensePage() {
         if (b.life <= 0) return false;
         const a0 = -Math.PI / 2 + (b.sector - 1) * (Math.PI * 2 / SECTORS);
         const a1 = a0 + Math.PI * 2 / SECTORS;
-        ctx.beginPath(); ctx.moveTo(cx, cy); ctx.arc(cx, cy, radius, a0, a1); ctx.closePath();
-        ctx.fillStyle = `rgba(218,255,0,${Math.max(0, b.life) * 0.82})`; ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.arc(cx, cy, radius, a0, a1);
+        ctx.closePath();
+        ctx.fillStyle = `rgba(218,255,0,${Math.max(0, b.life) * 0.82})`;
+        ctx.fill();
         return true;
       });
 
-      // core
-      ctx.beginPath(); ctx.arc(cx, cy, 22, 0, Math.PI * 2); ctx.fillStyle = '#daff00'; ctx.fill();
-      ctx.beginPath(); ctx.arc(cx, cy, 8 + Math.sin(now * .006) * 2, 0, Math.PI * 2); ctx.fillStyle = '#050505'; ctx.fill();
+      ctx.beginPath();
+      ctx.arc(cx, cy, 22, 0, Math.PI * 2);
+      ctx.fillStyle = '#daff00';
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(cx, cy, 8 + Math.sin(now * 0.006) * 2, 0, Math.PI * 2);
+      ctx.fillStyle = '#050505';
+      ctx.fill();
+
       raf = requestAnimationFrame(draw);
     };
+
     raf = requestAnimationFrame(draw);
-    return () => { cancelAnimationFrame(raf); ro.disconnect(); };
+    return () => {
+      cancelAnimationFrame(raf);
+      ro.disconnect();
+    };
   }, [started]);
 
   return (
@@ -167,20 +262,34 @@ export default function ObasSectorDefensePage() {
           <span>HARIL OS // OBAS SECTOR DEFENSE</span>
           <span>SCORE {String(score).padStart(6, '0')} // CORE {core}%</span>
         </div>
+
         <div style={{ border: '1px solid #313131', background: '#000' }}>
           <canvas ref={canvasRef} style={{ width: '100%', height: 'min(68vw, 680px)', minHeight: 420, display: 'block' }} />
         </div>
+
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(120px,1fr))', gap: 8, marginTop: 10 }}>
           {Array.from({ length: 8 }, (_, i) => i + 1).map((n) => (
-            <button key={n} onClick={() => fireSector(n)} style={{ minHeight: 44, border: '1px solid #daff00', background: '#050505', color: '#daff00', font: 'inherit', cursor: 'pointer' }}>SECTOR {n}</button>
+            <button key={n} onClick={() => fireSector(n)} style={{ minHeight: 44, border: '1px solid #daff00', background: '#050505', color: '#daff00', font: 'inherit', cursor: 'pointer' }}>
+              SECTOR {n}
+            </button>
           ))}
         </div>
+
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 10 }}>
-          <button onClick={() => setStarted((v) => !v)} style={{ minHeight: 46, padding: '0 18px', border: '1px solid #daff00', background: started ? '#daff00' : '#050505', color: started ? '#050505' : '#daff00', font: 'inherit', cursor: 'pointer' }}>{started ? 'PAUSE INVASION' : 'START INVASION'}</button>
-          <button onClick={toggleVoice} disabled={!supported} style={{ minHeight: 46, padding: '0 18px', border: '1px solid #daff00', background: listening ? '#daff00' : '#050505', color: listening ? '#050505' : '#daff00', font: 'inherit', cursor: supported ? 'pointer' : 'not-allowed', opacity: supported ? 1 : .4 }}>{supported ? (listening ? 'VOICE ACTIVE' : 'ENABLE VOICE') : 'VOICE UNSUPPORTED'}</button>
-          <div style={{ flex: '1 1 280px', minHeight: 46, border: '1px solid #313131', display: 'flex', alignItems: 'center', padding: '0 14px', color: '#eee', fontSize: 12 }}>{heard}</div>
+          <button onClick={() => setStarted((v) => !v)} style={{ minHeight: 46, padding: '0 18px', border: '1px solid #daff00', background: started ? '#daff00' : '#050505', color: started ? '#050505' : '#daff00', font: 'inherit', cursor: 'pointer' }}>
+            {started ? 'PAUSE INVASION' : 'START INVASION'}
+          </button>
+          <button onClick={toggleVoice} disabled={!supported} style={{ minHeight: 46, padding: '0 18px', border: '1px solid #daff00', background: listening ? '#daff00' : '#050505', color: listening ? '#050505' : '#daff00', font: 'inherit', cursor: supported ? 'pointer' : 'not-allowed', opacity: supported ? 1 : .4 }}>
+            {supported ? (listening ? 'VOICE ACTIVE' : 'ENABLE VOICE') : 'VOICE UNSUPPORTED'}
+          </button>
+          <div style={{ flex: '1 1 280px', minHeight: 46, border: '1px solid #313131', display: 'flex', alignItems: 'center', padding: '0 14px', color: '#eee', fontSize: 12 }}>
+            {heard}
+          </div>
         </div>
-        <p style={{ color: '#8c8c8c', fontSize: 12, lineHeight: 1.5, marginTop: 10 }}>Call “Sector one” through “Sector eight.” The OBAS core fires a full radial wedge through the named sector. Manual sector keys remain active as fallback controls.</p>
+
+        <p style={{ color: '#8c8c8c', fontSize: 12, lineHeight: 1.5, marginTop: 10 }}>
+          Call “Sector one” through “Sector eight.” The status panel now shows the live transcript or the exact browser speech error. Manual sector keys remain active as fallback controls.
+        </p>
       </div>
     </main>
   );
