@@ -1,9 +1,25 @@
 export default function ObasVoiceTypeFieldVersionsPage() {
   const versions = [
-    { href: '../v1-reactive/', label: 'V1 — Reactive field', note: 'Color/pattern background, voice metrics, expanding text echoes.' },
-    { href: '../v2-pixel/', label: 'V2 — Pixel text', note: 'Low-resolution pixel rendering with fast word buffer and voice-driven color.' },
-    { href: '../v3-transcript/', label: 'V3 — Simple transcript', note: 'Large live transcription with a single mic control.' },
-    { href: '../', label: 'LATEST', note: 'Current working iteration.' },
+    {
+      href: 'https://matchzimmerman.github.io/mz-audio-tools/obas-voice-type-field/v1-reactive/',
+      label: 'V1 — Reactive field',
+      note: 'Color/pattern background, voice metrics, expanding text echoes.',
+    },
+    {
+      href: 'https://matchzimmerman.github.io/mz-audio-tools/obas-voice-type-field/v2-pixel/',
+      label: 'V2 — Pixel text',
+      note: 'Low-resolution pixel rendering with fast word buffer and voice-driven color.',
+    },
+    {
+      href: 'https://matchzimmerman.github.io/mz-audio-tools/obas-voice-type-field/v3-transcript/',
+      label: 'V3 — Simple transcript',
+      note: 'Large live transcription with a single mic control.',
+    },
+    {
+      href: 'https://matchzimmerman.github.io/mz-audio-tools/obas-voice-type-field/',
+      label: 'LATEST',
+      note: 'Current working iteration.',
+    },
   ];
 
   return (
