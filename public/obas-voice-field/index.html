@@ -3,89 +3,51 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>HARIL OS // OBAS Voice Field</title>
+<title>HARIL OS // OBAS Voice Field 002</title>
 <style>
-  :root{--bg:#050505;--fg:#f4f0e6;--muted:#777;--line:#2b2b2b;--hot:#f4f0e6}
-  *{box-sizing:border-box}
-  html,body{margin:0;background:var(--bg);color:var(--fg);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
-  body{min-height:100vh;display:grid;grid-template-rows:auto 1fr auto}
-  header,footer{display:flex;justify-content:space-between;gap:16px;padding:12px 16px;border-color:var(--line);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#aaa}
-  header{border-bottom:1px solid var(--line)} footer{border-top:1px solid var(--line)}
-  main{display:grid;grid-template-columns:minmax(0,1fr) 270px;min-height:0}
-  .stage{position:relative;min-height:70vh;overflow:hidden}
-  canvas{width:100%;height:100%;display:block;min-height:70vh}
-  aside{border-left:1px solid var(--line);padding:16px;display:flex;flex-direction:column;gap:18px}
-  .section{border-top:1px solid var(--line);padding-top:14px}.section:first-child{border-top:0;padding-top:0}
-  .label{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#888;margin-bottom:8px}
-  .value{font-size:28px;line-height:1}
-  button{width:100%;min-height:44px;background:transparent;color:var(--fg);border:1px solid #666;font:inherit;padding:10px 12px;text-align:left;cursor:pointer}
-  button:hover{background:#111} button:disabled{opacity:.4;cursor:not-allowed}
-  input[type=range]{width:100%}
-  .row{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;font-size:11px;margin:9px 0}
-  .meter{height:4px;background:#1b1b1b;margin-top:10px;overflow:hidden}.meter>i{display:block;height:100%;width:0;background:var(--fg)}
-  .note{font-size:11px;line-height:1.5;color:#8d8d8d}
-  .badge{display:inline-block;border:1px solid #444;padding:4px 6px;font-size:9px;letter-spacing:.1em;text-transform:uppercase;margin:3px 3px 0 0}
-  .hud{position:absolute;left:14px;bottom:12px;right:14px;display:flex;justify-content:space-between;font-size:10px;color:#888;pointer-events:none}
-  @media(max-width:760px){main{grid-template-columns:1fr}aside{border-left:0;border-top:1px solid var(--line)}canvas,.stage{min-height:58vh}}
+:root{--ink:#17132f;--paper:#f2e85e;--pink:#ff4f7a;--cyan:#23d8ff}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:var(--paper);color:var(--ink);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+body{min-height:100vh;display:grid;grid-template-rows:auto 1fr auto}header,footer{display:flex;justify-content:space-between;gap:12px;padding:10px 14px;border-color:var(--ink);font-size:10px;letter-spacing:.12em;text-transform:uppercase}header{border-bottom:3px solid var(--ink)}footer{border-top:3px solid var(--ink)}
+main{display:grid;grid-template-columns:minmax(0,1fr) 280px;min-height:0}.stage{position:relative;min-height:76vh;overflow:hidden;background:var(--paper)}canvas{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated;image-rendering:crisp-edges}.hud{position:absolute;left:12px;right:12px;bottom:10px;display:flex;justify-content:space-between;gap:10px;font-size:10px;font-weight:700;pointer-events:none;background:var(--paper);border:2px solid var(--ink);padding:5px 7px;width:max-content;max-width:calc(100% - 24px)}
+aside{border-left:3px solid var(--ink);padding:14px;display:flex;flex-direction:column;gap:16px;background:var(--paper)}.section{border-top:2px solid var(--ink);padding-top:11px}.section:first-child{border-top:0;padding-top:0}.label{font-size:9px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;margin-bottom:7px}.value{font-size:28px;font-weight:900;line-height:1}.metric{display:grid;grid-template-columns:1fr auto;gap:10px;font-size:10px;margin:5px 0}.badge{display:inline-block;border:2px solid var(--ink);padding:3px 5px;font-size:9px;font-weight:800;text-transform:uppercase;margin:5px 3px 0 0}.meter{height:8px;border:2px solid var(--ink);margin-top:9px;overflow:hidden}.meter>i{display:block;height:100%;width:0;background:var(--pink)}button{width:100%;min-height:42px;background:var(--cyan);color:var(--ink);border:2px solid var(--ink);font:inherit;font-weight:800;padding:9px 10px;text-align:left;cursor:pointer;box-shadow:3px 3px 0 var(--ink)}button+button{margin-top:8px}button:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}input[type=range]{width:100%;accent-color:var(--pink)}.row{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;font-size:10px;font-weight:700;margin:8px 0 2px}.note{font-size:10px;line-height:1.45;margin:8px 0 0}.swatches{display:flex;gap:4px;margin-top:7px}.swatches i{width:22px;height:12px;border:2px solid var(--ink)}
+@media(max-width:760px){main{grid-template-columns:1fr}.stage{min-height:62vh}aside{border-left:0;border-top:3px solid var(--ink)}}
 </style>
 </head>
 <body>
-<header><span>HARIL OS // OBAS VOICE FIELD 001</span><span id="status">IDLE</span></header>
+<header><span>HARIL OS // OBAS VOICE FIELD 002</span><span id="status">IDLE</span></header>
 <main>
-  <section class="stage">
-    <canvas id="field"></canvas>
-    <div class="hud"><span id="hudLeft">VOICE 0.00</span><span id="hudRight">RHYTHM 0.00</span></div>
-  </section>
-  <aside>
-    <section class="section">
-      <div class="label">Input</div>
-      <button id="micBtn">Enable microphone</button>
-      <button id="demoBtn" style="margin-top:8px">Run simulated voice</button>
-      <div class="meter"><i id="meter"></i></div>
-      <p class="note">Live mic analyzes amplitude and onset rhythm locally in the browser. No audio is uploaded.</p>
-    </section>
-    <section class="section">
-      <div class="label">Field state</div>
-      <div class="value" id="pressure">0.00</div>
-      <div><span class="badge" id="flowBadge">quiet</span><span class="badge" id="pulseBadge">no onset</span></div>
-    </section>
-    <section class="section">
-      <div class="label">Response</div>
-      <div class="row"><span>Expansion</span><span id="expN">72</span></div><input id="exp" type="range" min="20" max="130" value="72" />
-      <div class="row"><span>Branching</span><span id="brN">62</span></div><input id="br" type="range" min="0" max="100" value="62" />
-      <div class="row"><span>Persistence</span><span id="perN">82</span></div><input id="per" type="range" min="20" max="98" value="82" />
-      <div class="row"><span>Core sensitivity</span><span id="senN">70</span></div><input id="sen" type="range" min="20" max="100" value="70" />
-    </section>
-    <section class="section">
-      <div class="label">Manual test</div>
-      <button id="hitBtn">Inject emphasized syllable</button>
-      <p class="note">The visual starts at one center point. Speech energy expands the core; syllabic onsets launch rings and directional branches. Pauses let the field cool and contract.</p>
-    </section>
-  </aside>
+<section class="stage"><canvas id="display"></canvas><div class="hud"><span id="hudA">PRESSURE 0.00</span><span id="hudB">RHYTHM 0.00</span><span id="hudC">SPECTRAL 0.00</span></div></section>
+<aside>
+<section class="section"><div class="label">Voice input</div><button id="micBtn">Enable microphone</button><button id="demoBtn">Run simulated voice</button><div class="meter"><i id="meter"></i></div><p class="note">Audio stays local. Voice becomes control data for the OBAS field.</p></section>
+<section class="section"><div class="label">Live behavior</div><div class="value" id="pressure">0.00</div><div class="metric"><span>onset rate</span><span id="rate">0.0/s</span></div><div class="metric"><span>spectral center</span><span id="centroid">0.00</span></div><div class="metric"><span>low/high bias</span><span id="balance">0.00</span></div><span class="badge" id="state">pause</span><span class="badge" id="event">no onset</span></section>
+<section class="section"><div class="label">OBAS response</div><div class="row"><span>Sensitivity</span><span id="senN">72</span></div><input id="sen" type="range" min="25" max="130" value="72"><div class="row"><span>Field density</span><span id="denN">68</span></div><input id="den" type="range" min="20" max="100" value="68"><div class="row"><span>Organic warp</span><span id="warpN">74</span></div><input id="warp" type="range" min="0" max="100" value="74"><div class="row"><span>Memory</span><span id="memN">82</span></div><input id="mem" type="range" min="20" max="98" value="82"></section>
+<section class="section"><div class="label">4-color indexed field</div><div class="swatches"><i style="background:#f2e85e"></i><i style="background:#17132f"></i><i style="background:#ff4f7a"></i><i style="background:#23d8ff"></i></div><p class="note">136 × 170 simulation. Hard thresholds. Ordered dither at transition edges. Nearest-neighbor scale only.</p><button id="hitBtn">Inject emphasized syllable</button></section>
+</aside>
 </main>
-<footer><span>OBAS = sensory response layer</span><span>HARIL = interaction environment</span></footer>
+<footer><span>VOICE → METRICS → ORGANIC FIELD</span><span>OBAS / HARIL</span></footer>
 <script>
-(() => {
-  const c=document.getElementById('field'),ctx=c.getContext('2d');
-  const micBtn=document.getElementById('micBtn'),demoBtn=document.getElementById('demoBtn'),hitBtn=document.getElementById('hitBtn');
-  const meter=document.getElementById('meter'),pressure=document.getElementById('pressure'),status=document.getElementById('status');
-  const hudLeft=document.getElementById('hudLeft'),hudRight=document.getElementById('hudRight'),flowBadge=document.getElementById('flowBadge'),pulseBadge=document.getElementById('pulseBadge');
-  const exp=document.getElementById('exp'),br=document.getElementById('br'),per=document.getElementById('per'),sen=document.getElementById('sen');
-  const labels=[[exp,'expN'],[br,'brN'],[per,'perN'],[sen,'senN']]; labels.forEach(([el,id])=>el.addEventListener('input',()=>document.getElementById(id).textContent=el.value));
-  let W=0,H=0,DPR=1,last=performance.now(),time=0,mode='idle',audioCtx=null,analyser=null,data=null,stream=null;
-  let smooth=0,prevSmooth=0,rhythm=0,lastOnset=0,manual=0,demoPhase=0;
-  const rings=[],branches=[];
-  function resize(){const r=c.getBoundingClientRect();DPR=Math.min(devicePixelRatio||1,2);W=Math.max(300,r.width);H=Math.max(360,r.height);c.width=Math.round(W*DPR);c.height=Math.round(H*DPR);ctx.setTransform(DPR,0,0,DPR,0,0)}
-  new ResizeObserver(resize).observe(c);resize();
-  function burst(strength){rings.push({r:14,life:1,s:strength});const count=Math.max(1,Math.round((+br.value/100)*(3+strength*12)));for(let i=0;i<count;i++){const a=Math.random()*Math.PI*2;branches.push({a,r:16,v:1.2+Math.random()*2.7+strength*2.2,life:1,w:.7+Math.random()*2.2,curve:(Math.random()-.5)*.008});}if(branches.length>320)branches.splice(0,branches.length-320);}
-  function rms(){if(mode==='mic'&&analyser){analyser.getByteTimeDomainData(data);let sum=0;for(let i=0;i<data.length;i++){const v=(data[i]-128)/128;sum+=v*v}return Math.min(1,Math.sqrt(sum/data.length)*3.2)}if(mode==='demo'){demoPhase+=0.035;const syll=Math.max(0,Math.sin(demoPhase*2.2))*0.55;const phrase=(Math.sin(demoPhase*.33)+1)*.16;const pause=(Math.sin(demoPhase*.11)>.72)?0.08:1;return Math.min(1,(syll+phrase)*pause);}return 0;}
-  async function enableMic(){try{stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});audioCtx=new (window.AudioContext||window.webkitAudioContext)();const src=audioCtx.createMediaStreamSource(stream);analyser=audioCtx.createAnalyser();analyser.fftSize=1024;analyser.smoothingTimeConstant=.15;data=new Uint8Array(analyser.fftSize);src.connect(analyser);mode='mic';status.textContent='MIC LIVE';micBtn.textContent='Disable microphone';demoBtn.textContent='Run simulated voice';}catch(e){status.textContent='MIC BLOCKED';console.error(e)}}
-  function disableMic(){if(stream)stream.getTracks().forEach(t=>t.stop());if(audioCtx)audioCtx.close();stream=null;audioCtx=null;analyser=null;data=null;mode='idle';micBtn.textContent='Enable microphone';status.textContent='IDLE'}
-  micBtn.addEventListener('click',()=>mode==='mic'?disableMic():enableMic());
-  demoBtn.addEventListener('click',()=>{if(mode==='mic')disableMic();mode=mode==='demo'?'idle':'demo';demoBtn.textContent=mode==='demo'?'Stop simulated voice':'Run simulated voice';status.textContent=mode==='demo'?'SIMULATED VOICE':'IDLE'});
-  hitBtn.addEventListener('click',()=>{manual=Math.min(1,manual+.9);burst(.95)});
-  function frame(now){const dt=Math.min(40,now-last);last=now;time+=dt;manual*=.9;const sensitivity=+sen.value/70;const raw=Math.min(1,rms()*sensitivity+manual);smooth+=(raw-smooth)*.17;rhythm=Math.abs(smooth-prevSmooth)*4.7;prevSmooth=smooth;const onset=rhythm>.14&&smooth>.13&&now-lastOnset>90;if(onset){burst(Math.max(.28,smooth));lastOnset=now}ctx.fillStyle='#050505';ctx.fillRect(0,0,W,H);const cx=W/2,cy=H/2,scale=+exp.value/72,decay=.003+(1-(+per.value/100))*.018;ctx.save();ctx.translate(cx,cy);for(let i=0;i<24;i++){const a=i/24*Math.PI*2+time*.000025;const len=Math.min(W,H)*(.12+.28*smooth);ctx.strokeStyle='rgba(244,240,230,.07)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(Math.cos(a)*12,Math.sin(a)*12);ctx.lineTo(Math.cos(a)*len,Math.sin(a)*len);ctx.stroke();}for(let i=rings.length-1;i>=0;i--){const q=rings[i];q.r+=(1.1+q.s*4.5)*scale;q.life-=decay;ctx.strokeStyle=`rgba(244,240,230,${Math.max(0,q.life*.34)})`;ctx.lineWidth=.6+1.7*q.life;ctx.beginPath();ctx.arc(0,0,q.r,0,Math.PI*2);ctx.stroke();if(q.life<=0||q.r>Math.max(W,H))rings.splice(i,1)}for(let i=branches.length-1;i>=0;i--){const b=branches[i];b.r+=b.v*scale;b.a+=b.curve*(1+smooth);b.life-=decay*.72;const x=Math.cos(b.a)*b.r,y=Math.sin(b.a)*b.r,tail=9+b.v*5;ctx.strokeStyle=`rgba(244,240,230,${Math.max(0,b.life*.72)})`;ctx.lineWidth=b.w*b.life;ctx.beginPath();ctx.moveTo(Math.cos(b.a)*(b.r-tail),Math.sin(b.a)*(b.r-tail));ctx.lineTo(x,y);ctx.stroke();if(b.life<=0||Math.abs(x)>W*.8||Math.abs(y)>H*.8)branches.splice(i,1)}const core=9+smooth*34;ctx.fillStyle='#f4f0e6';ctx.beginPath();ctx.arc(0,0,core,0,Math.PI*2);ctx.fill();ctx.strokeStyle=`rgba(244,240,230,${.18+smooth*.45})`;ctx.lineWidth=1.3;ctx.beginPath();ctx.arc(0,0,core+8+rhythm*20,0,Math.PI*2);ctx.stroke();ctx.restore();meter.style.width=`${Math.round(smooth*100)}%`;pressure.textContent=smooth.toFixed(2);hudLeft.textContent=`VOICE ${smooth.toFixed(2)}`;hudRight.textContent=`RHYTHM ${rhythm.toFixed(2)}`;flowBadge.textContent=smooth<.09?'pause':smooth<.32?'low flow':'speech';pulseBadge.textContent=onset?'onset':'no onset';requestAnimationFrame(frame);}
-  requestAnimationFrame(frame);
+(()=>{
+const SW=136,SH=170,PAL=['#f2e85e','#17132f','#ff4f7a','#23d8ff'];
+const sim=document.createElement('canvas');sim.width=SW;sim.height=SH;const sctx=sim.getContext('2d',{alpha:false});const img=sctx.createImageData(SW,SH);const out=document.getElementById('display'),ctx=out.getContext('2d',{alpha:false});ctx.imageSmoothingEnabled=false;
+const micBtn=document.getElementById('micBtn'),demoBtn=document.getElementById('demoBtn'),hitBtn=document.getElementById('hitBtn'),status=document.getElementById('status'),meter=document.getElementById('meter');
+const pressureEl=document.getElementById('pressure'),rateEl=document.getElementById('rate'),centroidEl=document.getElementById('centroid'),balanceEl=document.getElementById('balance'),stateEl=document.getElementById('state'),eventEl=document.getElementById('event');
+const hudA=document.getElementById('hudA'),hudB=document.getElementById('hudB'),hudC=document.getElementById('hudC');
+const sen=document.getElementById('sen'),den=document.getElementById('den'),warp=document.getElementById('warp'),mem=document.getElementById('mem');[[sen,'senN'],[den,'denN'],[warp,'warpN'],[mem,'memN']].forEach(([e,id])=>e.oninput=()=>document.getElementById(id).textContent=e.value);
+let W=0,H=0,DPR=1,mode='idle',audioCtx=null,analyser=null,timeData=null,freqData=null,stream=null,last=performance.now(),t=0,demo=0;
+let amp=0,prevAmp=0,rhythm=0,cent=0,balance=0,manual=0,lastOnset=0,pauseFor=0;const onsetTimes=[],waves=[];
+const bayer=[[0,8,2,10],[12,4,14,6],[3,11,1,9],[15,7,13,5]];
+const rgb=PAL.map(h=>[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)]);
+function resize(){const r=out.getBoundingClientRect();DPR=Math.min(devicePixelRatio||1,2);W=Math.max(320,r.width);H=Math.max(420,r.height);out.width=Math.round(W*DPR);out.height=Math.round(H*DPR);ctx.setTransform(DPR,0,0,DPR,0,0);ctx.imageSmoothingEnabled=false}new ResizeObserver(resize).observe(out);resize();
+async function enableMic(){try{stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:false}});audioCtx=new (window.AudioContext||window.webkitAudioContext)();const src=audioCtx.createMediaStreamSource(stream);analyser=audioCtx.createAnalyser();analyser.fftSize=1024;analyser.smoothingTimeConstant=.18;timeData=new Uint8Array(analyser.fftSize);freqData=new Uint8Array(analyser.frequencyBinCount);src.connect(analyser);mode='mic';status.textContent='MIC LIVE';micBtn.textContent='Disable microphone';demoBtn.textContent='Run simulated voice'}catch(e){status.textContent='MIC BLOCKED';console.error(e)}}
+function disableMic(){if(stream)stream.getTracks().forEach(x=>x.stop());if(audioCtx)audioCtx.close();stream=audioCtx=analyser=timeData=freqData=null;mode='idle';status.textContent='IDLE';micBtn.textContent='Enable microphone'}
+micBtn.onclick=()=>mode==='mic'?disableMic():enableMic();demoBtn.onclick=()=>{if(mode==='mic')disableMic();mode=mode==='demo'?'idle':'demo';demoBtn.textContent=mode==='demo'?'Stop simulated voice':'Run simulated voice';status.textContent=mode==='demo'?'SIMULATED VOICE':'IDLE'};
+hitBtn.onclick=()=>{manual=Math.min(1,manual+.95);fire(.95)};
+function metrics(){let a=0,c=.45,b=.5;if(mode==='mic'&&analyser){analyser.getByteTimeDomainData(timeData);let sum=0;for(let i=0;i<timeData.length;i++){const v=(timeData[i]-128)/128;sum+=v*v}a=Math.min(1,Math.sqrt(sum/timeData.length)*4.2);analyser.getByteFrequencyData(freqData);let wt=0,tot=0,lo=0,hi=0;for(let i=1;i<freqData.length;i++){const v=freqData[i]/255;tot+=v;wt+=v*i;const f=i/freqData.length;if(f<.18)lo+=v;if(f>.36)hi+=v}c=tot?Math.min(1,(wt/tot)/freqData.length*2.4):0;b=(lo+hi)?lo/(lo+hi):.5}else if(mode==='demo'){demo+=.041;const phrase=(Math.sin(demo*.39)+1)*.18;const syll=Math.pow(Math.max(0,Math.sin(demo*2.75)),2)*.65;const pause=Math.sin(demo*.17)>.66?.03:1;a=(phrase+syll)*pause;c=.48+.28*Math.sin(demo*.23);b=.52+.32*Math.sin(demo*.31)}return[a,c,b]}
+function fire(strength){waves.push({age:0,strength,twist:(Math.random()-.5)*2,phase:Math.random()*6.28});if(waves.length>12)waves.shift()}
+function render(now){const dt=Math.min(50,now-last);last=now;t+=dt*.001;manual*=.88;let [raw,c,b]=metrics();raw=Math.min(1,raw*(+sen.value/72)+manual);amp+=(raw-amp)*.2;cent+=(c-cent)*.12;balance+=(b-balance)*.1;rhythm=Math.abs(amp-prevAmp)*5.4;prevAmp=amp;const onset=rhythm>.16&&amp>.1&&now-lastOnset>85;if(onset){lastOnset=now;fire(Math.max(.25,amp));onsetTimes.push(now)}while(onsetTimes.length&&now-onsetTimes[0]>1800)onsetTimes.shift();const rate=onsetTimes.length/1.8;if(amp<.055)pauseFor+=dt;else pauseFor=0;waves.forEach(w=>w.age+=dt*.001);while(waves.length&&waves[0].age>3.2+(+mem.value/100)*2.5)waves.shift();
+const density=+den.value/100,warpAmt=+warp.value/100,cx=SW*.5,cy=SH*.5;let p=0;for(let y=0;y<SH;y++){for(let x=0;x<SW;x++){const dx=x-cx,dy=y-cy,r=Math.sqrt(dx*dx+dy*dy),ang=Math.atan2(dy,dx);const radial=r/(Math.min(SW,SH)*.5);const voiceRadius=7+amp*48+Math.min(18,rate*4);const seed=Math.exp(-(r*r)/(2*voiceRadius*voiceRadius));const swirl=warpAmt*(.8+cent*2.8);const wx=x+Math.sin(y*.115+t*(.7+cent*2.4)+ang*3)*5.2*swirl;const wy=y+Math.cos(x*.098-t*(.55+balance*1.7)-ang*2)*4.4*swirl;let f=Math.sin(wx*(.115+density*.075)+t*(1.1+rate*.08));f+=Math.cos(wy*(.105+density*.06)-t*(.8+cent*1.8));f+=Math.sin((wx+wy)*.061+t*(balance*2-.3));f+=seed*(1.2+amp*4.5);f+=Math.sin(ang*(3+Math.floor(rate*1.4))+r*.09-t*(1+cent*2))*amp*1.6;for(const w of waves){const rr=8+w.age*(14+w.strength*38);const d=Math.abs(r-rr);f+=Math.exp(-d*d/(4+18*w.strength))*w.strength*2.8*Math.sin(ang*(3+Math.floor(w.strength*6))+w.phase+w.age*w.twist)}if(pauseFor>250)f*=.72+.28*Math.sin(t*.35+radial*4);const d=(bayer[y&3][x&3]/15-.5)*(.34+.24*warpAmt);const q=f+d;let idx;if(q<-0.55+density*.22)idx=0;else if(q<.18-density*.18)idx=1;else if(q<1.02-density*.1)idx=2;else idx=3;const col=rgb[idx];img.data[p++]=col[0];img.data[p++]=col[1];img.data[p++]=col[2];img.data[p++]=255}}
+sctx.putImageData(img,0,0);ctx.fillStyle=PAL[0];ctx.fillRect(0,0,W,H);const scale=Math.max(W/SW,H/SH),dw=SW*scale,dh=SH*scale;ctx.imageSmoothingEnabled=false;ctx.drawImage(sim,(W-dw)/2,(H-dh)/2,dw,dh);
+pressureEl.textContent=amp.toFixed(2);rateEl.textContent=rate.toFixed(1)+'/s';centroidEl.textContent=cent.toFixed(2);balanceEl.textContent=balance.toFixed(2);stateEl.textContent=amp<.055?'pause':amp<.3?'flow':'pressure';eventEl.textContent=onset?'onset':'evolving';meter.style.width=Math.round(amp*100)+'%';hudA.textContent='PRESSURE '+amp.toFixed(2);hudB.textContent='RHYTHM '+rhythm.toFixed(2);hudC.textContent='SPECTRAL '+cent.toFixed(2);requestAnimationFrame(render)}requestAnimationFrame(render);
 })();
 </script>
 </body>
