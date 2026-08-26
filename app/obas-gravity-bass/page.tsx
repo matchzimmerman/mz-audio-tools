@@ -4,12 +4,19 @@ import { useEffect, useRef, useState } from 'react';
 
 type Puck = { id:number; x:number; y:number; vx:number; vy:number; r:number; pitch:number; hue:number; dragging?:boolean; lastHit:number };
 type Pulse = { x:number; y:number; life:number; r:number; hue:number };
+type AudioChain = { highpass:BiquadFilterNode; lowpass:BiquadFilterNode; limiter:DynamicsCompressorNode; master:GainNode };
 
 const SCALE = [55, 65.41, 73.42, 82.41, 98, 110, 130.81, 146.83];
+const MIN_AUDIO_HZ = 30;
+const MAX_AUDIO_HZ = 12000;
+const MAX_OSC_HZ = 6000;
+const MASTER_GAIN = 0.5;
+const MAX_BODIES = 12;
 
 export default function ObasGravityBassPage(){
   const canvasRef = useRef<HTMLCanvasElement|null>(null);
   const audioRef = useRef<AudioContext|null>(null);
+  const chainRef = useRef<AudioChain|null>(null);
   const pucksRef = useRef<Puck[]>([]);
   const pulsesRef = useRef<Pulse[]>([]);
   const nextIdRef = useRef(1);
@@ -27,36 +34,85 @@ export default function ObasGravityBassPage(){
       const Ctx = window.AudioContext || (window as any).webkitAudioContext;
       if(Ctx) audioRef.current = new Ctx();
     }
-    if(audioRef.current?.state==='suspended') audioRef.current.resume();
-    return audioRef.current;
+    const ctx = audioRef.current;
+    if(!ctx) return null;
+
+    if(!chainRef.current){
+      const highpass = ctx.createBiquadFilter();
+      const lowpass = ctx.createBiquadFilter();
+      const limiter = ctx.createDynamicsCompressor();
+      const master = ctx.createGain();
+
+      highpass.type = 'highpass';
+      highpass.frequency.value = MIN_AUDIO_HZ;
+      highpass.Q.value = 0.707;
+
+      lowpass.type = 'lowpass';
+      lowpass.frequency.value = MAX_AUDIO_HZ;
+      lowpass.Q.value = 0.707;
+
+      limiter.threshold.value = -12;
+      limiter.knee.value = 6;
+      limiter.ratio.value = 20;
+      limiter.attack.value = 0.003;
+      limiter.release.value = 0.18;
+
+      master.gain.value = MASTER_GAIN;
+
+      highpass.connect(lowpass).connect(limiter).connect(master).connect(ctx.destination);
+      chainRef.current = { highpass, lowpass, limiter, master };
+    }
+
+    if(ctx.state==='suspended') ctx.resume();
+    return ctx;
+  }
+
+  function safeFrequency(freq:number){
+    return Math.max(MIN_AUDIO_HZ, Math.min(MAX_OSC_HZ, freq));
   }
 
   function playTone(puck:Puck, energy:number, kind:'wall'|'puck'){
-    const ctx = ensureAudio(); if(!ctx) return;
+    const ctx = ensureAudio();
+    const chain = chainRef.current;
+    if(!ctx || !chain) return;
+
     const now = ctx.currentTime;
     const osc = ctx.createOscillator();
     const sub = ctx.createOscillator();
     const gain = ctx.createGain();
     const filter = ctx.createBiquadFilter();
-    const freq = puck.pitch;
+    const freq = safeFrequency(puck.pitch);
+    const mainFreq = safeFrequency(freq*(kind==='puck'?2:1));
+    const subFreq = safeFrequency(freq/2);
+
     osc.type = kind==='puck' ? 'triangle' : 'sine';
     sub.type = 'sine';
-    osc.frequency.setValueAtTime(freq*(kind==='puck'?2:1),now);
-    sub.frequency.setValueAtTime(freq/2,now);
+    osc.frequency.setValueAtTime(mainFreq,now);
+    sub.frequency.setValueAtTime(subFreq,now);
+
     filter.type='lowpass';
-    filter.frequency.setValueAtTime(kind==='puck'?1200:520,now);
+    filter.frequency.setValueAtTime(Math.min(MAX_AUDIO_HZ, kind==='puck'?1200:520),now);
     filter.frequency.exponentialRampToValueAtTime(180,now+0.22);
-    const amp = Math.min(.85,.08+energy*.45);
+
+    const amp = Math.min(.42,.06+energy*.26);
     gain.gain.setValueAtTime(.0001,now);
     gain.gain.exponentialRampToValueAtTime(amp,now+.004);
     gain.gain.exponentialRampToValueAtTime(.0001,now+(kind==='puck'?.28:.18));
-    osc.connect(filter); sub.connect(filter); filter.connect(gain).connect(ctx.destination);
+
+    osc.connect(filter);
+    sub.connect(filter);
+    filter.connect(gain).connect(chain.highpass);
+
     osc.start(now); sub.start(now); osc.stop(now+.3); sub.stop(now+.3);
-    setStatus(`${kind==='puck'?'PUCK COLLISION':'WALL STRIKE'} // ${Math.round(freq)} HZ`);
+    setStatus(`${kind==='puck'?'PUCK COLLISION':'WALL STRIKE'} // ${Math.round(freq)} HZ // SAFE CHAIN`);
   }
 
   function spawn(randomize=true){
     const c=canvasRef.current; if(!c) return;
+    if(pucksRef.current.length>=MAX_BODIES){
+      setStatus(`BODY LIMIT // ${MAX_BODIES} MAX`);
+      return;
+    }
     const w=c.clientWidth,h=c.clientHeight;
     const r=18+Math.random()*12;
     const angle=Math.random()*Math.PI*2;
@@ -191,7 +247,8 @@ export default function ObasGravityBassPage(){
         <label style={{display:'flex',alignItems:'center',gap:8,border:'1px solid #313131',minHeight:46,padding:'0 12px',color:'#eee'}}>FIELD SPEED <input type='range' min='.25' max='2.5' step='.05' value={speed} onChange={e=>setSpeedValue(Number(e.target.value))}/><span>{speed.toFixed(2)}×</span></label>
         <div style={{flex:'1 1 280px',minHeight:46,border:'1px solid #313131',display:'flex',alignItems:'center',padding:'0 14px',color:'#eee',fontSize:12}}>{status}</div>
       </div>
-      <p style={{color:'#8c8c8c',fontSize:12,lineHeight:1.5,marginTop:10}}>The bodies float indefinitely with no gravity. Wall strikes and puck-to-puck collisions trigger tones. Grab and throw any body to perturb the system and let new rhythms or melodies emerge.</p>
+      <div style={{marginTop:10,padding:'9px 12px',border:'1px solid #313131',color:'#bdbdbd',fontSize:11,lineHeight:1.5}}>AUDIO GUARDRAIL // {MIN_AUDIO_HZ} HZ HIGH-PASS // {MAX_AUDIO_HZ/1000} KHZ LOW-PASS // HARD COMPRESSION // MASTER {Math.round(MASTER_GAIN*100)}%</div>
+      <p style={{color:'#8c8c8c',fontSize:12,lineHeight:1.5,marginTop:10}}>The bodies float indefinitely with no gravity. Wall strikes and puck-to-puck collisions trigger tones. Grab and throw any body to perturb the system and let new rhythms or melodies emerge. Keep system/headphone volume at a comfortable level; software limiting cannot guarantee a safe listening level on every playback device.</p>
     </div>
   </main>;
 }
