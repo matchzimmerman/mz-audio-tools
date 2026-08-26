@@ -8,6 +8,7 @@ This file is the shared operating contract for AI coding and design agents worki
 2. Preserve working behavior and intentional product decisions already in the repository.
 3. Follow this protocol for implementation and aesthetic continuity.
 4. Use `FIELD_SPECIMEN_STYLE_GUIDE.md` as the canonical visual reference.
+5. For any audio-generating or audio-processing work, treat `AUDIO_SAFETY.md` as a mandatory completion requirement.
 
 If the user explicitly requests another aesthetic, follow that request and document the intentional departure. Do not force Field Specimen styling onto nonvisual work.
 
@@ -65,6 +66,18 @@ For every task that changes the visible product:
 
 For an existing product, use the smallest adoption level that achieves continuity. Do not perform a broad reskin when the requested change is local.
 
+## Mandatory audio-safety review
+
+For every synthesizer, sequencer, sampler, effect, feedback system, generative instrument, physics/collision instrument, procedural audio experiment, or other feature that can create or amplify sound:
+
+1. Read `AUDIO_SAFETY.md` completely before finalizing the audio graph.
+2. Route all audible sources through a protected master safety chain.
+3. Review frequency limits, gain staging, peak accumulation, event/polyphony density, feedback/resonance, and worst-case generative behavior.
+4. Complete the checklist in `AUDIO_SAFETY.md` before describing the build as finished.
+5. Report `Audio safety: PASS` or `Audio safety: NEEDS REVIEW` in the completion note.
+
+This requirement applies even when audio safety is not mentioned in the current user request. Do not remove, bypass, or weaken an existing safety chain as part of unrelated feature work.
+
 ## Sound-tool requirements
 
 For synthesizers, sequencers, samplers, effects, and generative instruments:
@@ -73,6 +86,7 @@ For synthesizers, sequencers, samplers, effects, and generative instruments:
 - Preserve the conceptual module order: identity/transport → observation → voice/motion/environment → sequence/record → manual input.
 - Give each macro control an audible and nonlinear mapping where appropriate.
 - Keep output gain-staged and protected from runaway feedback or polyphony.
+- Follow `AUDIO_SAFETY.md`; no sound tool is complete without its required safety review.
 - Make presets load complete, audible states rather than changing labels alone.
 - Make visual meters and scopes respond to the actual audio graph.
 - Use acid yellow for active notes, current steps, selected models, and focus.
@@ -95,6 +109,10 @@ When delegating UI work to another agent, include this exact instruction in the 
 
 > Read `AGENTS.md` and `FIELD_SPECIMEN_STYLE_GUIDE.md` before editing. Preserve the Field Specimen continuity contract and report any intentional deviations.
 
+When delegating audio-generating or audio-processing work, include this exact instruction as well:
+
+> Read `AUDIO_SAFETY.md` before editing the audio graph. Preserve or add the protected master safety chain, complete the safety checklist, and report `Audio safety: PASS` or `Audio safety: NEEDS REVIEW`.
+
 Agents working in parallel must not invent separate palettes, type systems, spacing systems, or names for the same component family. One agent should own shared token changes; other agents should consume them.
 
 ## Validation
@@ -109,6 +127,13 @@ Before completing a visual change:
 - Confirm no technical-looking element is fabricated.
 - Confirm existing product behavior remains intact unless replacement was requested.
 
+Before completing any audio-generating or audio-processing change:
+
+- Complete the `AUDIO_SAFETY.md` pre-completion checklist.
+- Confirm every audible source reaches the destination only through the protected master chain.
+- Confirm frequency, level, density, resonance, and feedback limits remain bounded.
+- Test maximum-energy behavior at low monitoring volume.
+
 ## Completion report
 
 In the final handoff or pull-request summary, include a compact continuity note:
@@ -121,4 +146,13 @@ Deviations: none | <intentional departure and reason>
 Validated: <checks performed>
 ```
 
-Keep this note factual. It is a continuity audit, not marketing copy.
+For audio-generating work, append:
+
+```text
+Audio safety: PASS | NEEDS REVIEW
+Band limits: <HPF> – <LPF>
+Master protection: <limiter/compressor + master gain>
+Density/feedback caps: <caps or n/a>
+```
+
+Keep these notes factual. They are continuity and safety audits, not marketing copy.
