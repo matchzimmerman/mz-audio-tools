@@ -9,6 +9,7 @@ This file is the shared operating contract for AI coding and design agents worki
 3. Follow this protocol for implementation and aesthetic continuity.
 4. Use `FIELD_SPECIMEN_STYLE_GUIDE.md` as the canonical visual reference.
 5. For any audio-generating or audio-processing work, treat `AUDIO_SAFETY.md` as a mandatory completion requirement.
+6. For device creation or integration, follow `DEVICE_ARCHITECTURE.md` and preserve the standalone/suite split.
 
 If the user explicitly requests another aesthetic, follow that request and document the intentional departure. Do not force Field Specimen styling onto nonvisual work.
 
@@ -66,6 +67,26 @@ For every task that changes the visible product:
 
 For an existing product, use the smallest adoption level that achieves continuity. Do not perform a broad reskin when the requested change is local.
 
+## Device architecture: standalone + suite
+
+Every SONIC LAB instrument must be treated as two related but independently preservable products:
+
+1. **Standalone** — the focused device and its core interaction model.
+2. **Suite** — the integrated version inside a larger SONIC LAB compositional environment.
+
+Before creating a new device, integrating an existing device, or restructuring routes, read `DEVICE_ARCHITECTURE.md`.
+
+Required behavior:
+
+- New focused devices belong under `app/standalone/<device-name>/`.
+- Integrated builds belong under `app/suite/<suite-or-device-name>/`.
+- Do not overwrite or delete a working standalone build merely to create an integrated version.
+- Preserve legacy routes when practical so existing prototypes and links continue to work.
+- Shared engines/components are encouraged, but standalone and suite interfaces must remain free to evolve independently.
+- Especially successful interaction states should be preserved as named/versioned builds before large behavioral changes.
+
+This architecture applies by default even when the current prompt does not explicitly request both versions.
+
 ## Mandatory audio-safety review
 
 For every synthesizer, sequencer, sampler, effect, feedback system, generative instrument, physics/collision instrument, procedural audio experiment, or other feature that can create or amplify sound:
@@ -113,6 +134,10 @@ When delegating audio-generating or audio-processing work, include this exact in
 
 > Read `AUDIO_SAFETY.md` before editing the audio graph. Preserve or add the protected master safety chain, complete the safety checklist, and report `Audio safety: PASS` or `Audio safety: NEEDS REVIEW`.
 
+When delegating device creation or suite-integration work, include this exact instruction as well:
+
+> Read `DEVICE_ARCHITECTURE.md` before editing. Preserve the standalone build, create integrated work under the suite branch, and do not overwrite one product form with the other.
+
 Agents working in parallel must not invent separate palettes, type systems, spacing systems, or names for the same component family. One agent should own shared token changes; other agents should consume them.
 
 ## Validation
@@ -133,6 +158,12 @@ Before completing any audio-generating or audio-processing change:
 - Confirm every audible source reaches the destination only through the protected master chain.
 - Confirm frequency, level, density, resonance, and feedback limits remain bounded.
 - Test maximum-energy behavior at low monitoring volume.
+
+Before completing device architecture or integration work:
+
+- Confirm the standalone version still exists and remains independently accessible.
+- Confirm suite-specific changes do not replace the standalone interaction model.
+- Confirm canonical routes follow `app/standalone/` and `app/suite/`.
 
 ## Completion report
 
@@ -155,4 +186,13 @@ Master protection: <limiter/compressor + master gain>
 Density/feedback caps: <caps or n/a>
 ```
 
-Keep these notes factual. They are continuity and safety audits, not marketing copy.
+For device/suite work, append:
+
+```text
+Device architecture: PASS | NEEDS REVIEW
+Standalone: <route>
+Suite: <route or n/a>
+Legacy routes preserved: yes | no
+```
+
+Keep these notes factual. They are continuity, architecture, and safety audits, not marketing copy.
