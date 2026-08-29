@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 
 const INTRO_KEY = 'mzcmg-sonic-lab-suite-intro-v1';
 const DONATION_URL = process.env.NEXT_PUBLIC_SONIC_LAB_DONATION_URL || '';
+const SUPPORT_ENABLED = false;
 
 export default function SuiteChrome({children}:{children:React.ReactNode}) {
   const [introOpen,setIntroOpen] = useState(false);
@@ -49,13 +50,15 @@ export default function SuiteChrome({children}:{children:React.ReactNode}) {
         <div style={{maxWidth:1720,margin:'0 auto',padding:'8px 18px',display:'flex',gap:10,alignItems:'center',justifyContent:'space-between',flexWrap:'wrap'}}>
           <div style={{display:'flex',alignItems:'baseline',gap:10,flexWrap:'wrap'}}>
             <strong style={{fontFamily:'Arial, Helvetica, sans-serif',fontSize:18,letterSpacing:'-.03em'}}>MZCMG // SONIC LAB</strong>
-            <span style={{fontSize:10,letterSpacing:'.12em',color:'#77756e'}}>FREE / DONATION-SUPPORTED INSTRUMENT SUITE</span>
+            <span style={{fontSize:10,letterSpacing:'.12em',color:'#77756e'}}>FREE EXPERIMENTAL INSTRUMENT SUITE</span>
           </div>
           <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
             <button type="button" onClick={()=>setIntroOpen(true)} style={buttonStyle}>ABOUT</button>
-            <button type="button" onClick={()=>setSupportOpen(v=>!v)} style={{...buttonStyle,background:'#dfff00'}}>SUPPORT / DONATE</button>
+            {SUPPORT_ENABLED && (
+              <button type="button" onClick={()=>setSupportOpen(v=>!v)} style={{...buttonStyle,background:'#dfff00'}}>SUPPORT / DONATE</button>
+            )}
           </div>
-          {supportOpen && (
+          {SUPPORT_ENABLED && supportOpen && (
             <div style={{width:'100%',borderTop:'1px solid rgba(29,29,27,.32)',paddingTop:8,display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
               <label style={{fontSize:10,fontWeight:700,letterSpacing:'.08em'}}>PAY WHAT YOU WILL $</label>
               <input
@@ -87,14 +90,11 @@ export default function SuiteChrome({children}:{children:React.ReactNode}) {
               <div style={{fontSize:12,fontWeight:800}}>RECOMMENDED // DESKTOP</div>
               <div style={{fontSize:12}}>Also functional on mobile. Larger screens provide the most direct access to the full instrument surface.</div>
             </div>
-            <p style={{fontFamily:'Arial, Helvetica, sans-serif',fontSize:17,lineHeight:1.45,margin:'0 0 12px'}}>
-              SONIC LAB is a free, donation-supported suite of intuitive experiential instruments for sound, rhythm, and composition. The tools are designed to invite play at whatever pace or level of musical production feels appropriate to the person using them.
-            </p>
             <p style={{fontFamily:'Arial, Helvetica, sans-serif',fontSize:17,lineHeight:1.45,margin:'0 0 20px'}}>
-              The suite will remain free. If you enjoy using these instruments, please consider supporting continued development with the <strong>SUPPORT / DONATE</strong> control at the top of the device.
+              SONIC LAB is a free suite of intuitive experiential instruments for sound, rhythm, and composition. The tools are designed to invite play at whatever pace or level of musical production feels appropriate to the person using them.
             </p>
             <div style={{display:'flex',justifyContent:'space-between',gap:10,alignItems:'center',flexWrap:'wrap'}}>
-              <span style={{fontSize:10,color:'#77756e',letterSpacing:'.08em'}}>ACCESSIBLE INSTRUMENTS // CONTINUOUS DEVELOPMENT // PAY WHAT YOU WILL</span>
+              <span style={{fontSize:10,color:'#77756e',letterSpacing:'.08em'}}>ACCESSIBLE INSTRUMENTS // CONTINUOUS DEVELOPMENT // FREE TO USE</span>
               <button type="button" onClick={closeIntro} style={{...buttonStyle,background:'#dfff00',minWidth:150}}>ENTER SONIC LAB</button>
             </div>
           </section>
