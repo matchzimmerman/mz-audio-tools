@@ -16,6 +16,7 @@ const TOOLS: Record<string, { id: string; name: string }> = {
 
 const HEADERLESS_ROUTES = new Set([
   "/standalone/polar-sequencer",
+  "/experimental/polar-sequencer",
   "/obas-polar-sequencer",
 ]);
 
