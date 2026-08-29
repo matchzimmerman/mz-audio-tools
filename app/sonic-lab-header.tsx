@@ -14,12 +14,23 @@ const TOOLS: Record<string, { id: string; name: string }> = {
   "/emergent-field": { id: "08", name: "EMERGENT FIELD" },
 };
 
+const HEADERLESS_ROUTES = new Set([
+  "/standalone/polar-sequencer",
+  "/obas-polar-sequencer",
+]);
+
 export default function SonicLabHeader() {
   const pathname = usePathname();
   const tool = TOOLS[pathname];
 
   // The integrated host owns the full persistent shell on /lab.
-  if (pathname === "/lab" || pathname.startsWith("/lab/")) return null;
+  // Public Vortex routes intentionally present as self-contained instruments
+  // without navigation back into the broader SONIC LAB index.
+  if (
+    pathname === "/lab" ||
+    pathname.startsWith("/lab/") ||
+    HEADERLESS_ROUTES.has(pathname)
+  ) return null;
 
   return (
     <header className="sonic-lab-global-header">
